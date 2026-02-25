@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Organimo R&D - Clouds</title>
+  <!-- Preload fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@1,600&family=Space+Grotesk:wght@400;700&display=swap"
+    rel="stylesheet">
+  <style>
+    body,
+    html {
+      margin: 0;
+      padding: 0;
+      background: #000000;
+      color: #ffffff;
+      font-family: 'Space Grotesk', sans-serif;
+      overflow-x: hidden;
+      width: 100%;
+    }
+
+    canvas {
+      display: block;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: -1;
+    }
+
+    #security-gate {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: #000000;
+      z-index: 9999;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .pin-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1.5rem;
+    }
+
+    .pin-container label {
+      font-size: 0.9rem;
+      letter-spacing: 6px;
+      color: #7000ff;
+      text-transform: uppercase;
+    }
+
+    .pin-container input {
+      background: transparent;
+      border: none;
+      border-bottom: 2px solid #333;
+      color: #fff;
+      font-size: 2.5rem;
+      text-align: center;
+      outline: none;
+      width: 160px;
+      letter-spacing: 12px;
+      font-family: 'Space Grotesk', sans-serif;
+      padding-bottom: 0.5rem;
+      transition: border-color 0.3s;
+    }
+
+    .pin-container input:focus {
+      border-bottom-color: #ff0077;
+    }
+
+    #header {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      padding: 2.5rem;
+      display: flex;
+      justify-content: space-between;
+      box-sizing: border-box;
+      mix-blend-mode: exclusion;
+      z-index: 100;
+      pointer-events: none;
+    }
+
+    .logo {
+      font-family: 'Playfair Display', serif;
+      font-style: italic;
+      font-size: 1.8rem;
+      letter-spacing: 1px;
+    }
+
+    .nav {
+      font-size: 1rem;
+      letter-spacing: 4px;
+      text-transform: uppercase;
+    }
+
+    .scroll-content {
+      height: 400vh;
+      pointer-events: none;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div id="security-gate">
+    <div class="pin-container">
+      <label>Enter Security PIN</label>
+      <input type="password" id="pin-input" maxlength="4" autocomplete="off" autofocus />
+    </div>
+  </div>
+
+  <header id="header">
+    <div class="logo">Organimo R&D</div>
+    <div class="nav">Clouds</div>
+  </header>
+
+  <div class="scroll-content"></div>
+
+  <!-- Import Maps -->
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/",
+      "gsap": "https://unpkg.com/gsap@3.12.5/index.js",
+      "@studio-freight/lenis": "https://unpkg.com/@studio-freight/lenis@1.0.42/dist/lenis.mjs"
+    }
+  }
+</script>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+    import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+    import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
+    import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+    import gsap from 'gsap';
+    import Lenis from '@studio-freight/lenis';
+
+    //=========================================
+    // 1. Core Setups
+    //=========================================
+    const lenis = new Lenis({
+      smoothWheel: true,
+      duration: 1.2
+    });
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x000000);
+
+    // PerspectiveCamera for 3D elements
+    const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
+    camera.position.z = 15;
+
+    const renderer = new THREE.WebGLRenderer({ antialias: false, alpha: false });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    document.body.appendChild(renderer.domElement);
+
+    //=========================================
+    // 2. WebGL Core (Raymarching Clouds)
+    //=========================================
+    // Full screen triangle to avoid PlaneGeometry dependencies but fill the screen
+    const bgGeometry = new THREE.BufferGeometry();
+    const vertices = new Float32Array([
+      -1.0, -1.0, 0.0,
+      3.0, -1.0, 0.0,
+      -1.0, 3.0, 0.0
+    ]);
+    const uvs = new Float32Array([
+      0.0, 0.0,
+      2.0, 0.0,
+      0.0, 2.0
+    ]);
+    bgGeometry.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
+    bgGeometry.setAttribute('uv', new THREE.BufferAttribute(uvs, 2));
+
+    const uniforms = {
+      uTime: { value: 0 },
+      uResolution: { value: new THREE.Vector2(window.innerWidth, window.innerHeight) },
+      uMouse: { value: new THREE.Vector2(0, 0) },
+      uBrightness: { value: 0.0 }
+    };
+
+    const bgMaterial = new THREE.ShaderMaterial({
+      uniforms: uniforms,
+      vertexShader: `
+            varying vec2 vUv;
+            void main() {
+                vUv = uv;
+                // Draw directly to clip space
+                gl_Position = vec4(position, 1.0);
+            }
+        `,
+      fragmentShader: `
+            uniform float uTime;
+            uniform vec2 uResolution;
+            uniform vec2 uMouse;
+            uniform float uBrightness;
+
+            varying vec2 vUv;
+
+            // --- 3D Simplex Noise ---
+            vec4 permute(vec4 x){return mod(((x*34.0)+1.0)*x, 289.0);}
+            vec4 taylorInvSqrt(vec4 r){return 1.79284291400159 - 0.85373472095314 * r;}
+            float snoise(vec3 v){ 
+              const vec2  C = vec2(1.0/6.0, 1.0/3.0) ;
+              const vec4  D = vec4(0.0, 0.5, 1.0, 2.0);
+              vec3 i  = floor(v + dot(v, C.yyy) );
+              vec3 x0 = v - i + dot(i, C.xxx) ;
+              vec3 g = step(x0.yzx, x0.xyz);
+              vec3 l = 1.0 - g;
+              vec3 i1 = min( g.xyz, l.zxy );
+              vec3 i2 = max( g.xyz, l.zxy );
+              vec3 x1 = x0 - i1 + 1.0 * C.xxx;
+              vec3 x2 = x0 - i2 + 2.0 * C.xxx;
+              vec3 x3 = x0 - 1.0 + 3.0 * C.xxx;
+              i = mod(i, 289.0 ); 
+              vec4 p = permute( permute( permute( 
+                         i.z + vec4(0.0, i1.z, i2.z, 1.0 ))
+                       + i.y + vec4(0.0, i1.y, i2.y, 1.0 )) 
+                       + i.x + vec4(0.0, i1.x, i2.x, 1.0 ));
+              float n_ = 1.0/7.0;
+              vec3  ns = n_ * D.wyz - D.xzx;
+              vec4 j = p - 49.0 * floor(p * ns.z *ns.z);
+              vec4 x_ = floor(j * ns.z);
+              vec4 y_ = floor(j - 7.0 * x_ );
+              vec4 x = x_ *ns.x + ns.yyyy;
+              vec4 y = y_ *ns.x + ns.yyyy;
+              vec4 h = 1.0 - abs(x) - abs(y);
+              vec4 b0 = vec4( x.xy, y.xy );
+              vec4 b1 = vec4( x.zw, y.zw );
+              vec4 s0 = floor(b0)*2.0 + 1.0;
+              vec4 s1 = floor(b1)*2.0 + 1.0;
+              vec4 sh = -step(h, vec4(0.0));
+              vec4 a0 = b0.xzyw + s0.xzyw*sh.xxyy ;
+              vec4 a1 = b1.xzyw + s1.xzyw*sh.zzww ;
+              vec3 p0 = vec3(a0.xy,h.x);
+              vec3 p1 = vec3(a0.zw,h.y);
+              vec3 p2 = vec3(a1.xy,h.z);
+              vec3 p3 = vec3(a1.zw,h.w);
+              vec4 norm = taylorInvSqrt(vec4(dot(p0,p0), dot(p1,p1), dot(p2, p2), dot(p3,p3)));
+              p0 *= norm.x;
+              p1 *= norm.y;
+              p2 *= norm.z;
+              p3 *= norm.w;
+              vec4 m = max(0.6 - vec4(dot(x0,x0), dot(x1,x1), dot(x2,x2), dot(x3,x3)), 0.0);
+              m = m * m;
+              return 42.0 * dot( m*m, vec4( dot(p0,x0), dot(p1,x1), dot(p2,x2), dot(p3,x3) ) );
+            }
+
+            // --- FBM (6 octaves) ---
+            float fbm(vec3 p) {
+                float sum = 0.0;
+                float amp = 1.0;
+                float freq = 1.0;
+                for(int i = 0; i < 6; i++) {
+                    sum += snoise(p * freq) * amp;
+                    amp *= 0.5;
+                    freq *= 2.0;
+                }
+                return sum;
+            }
+
+            // --- Raymarching ---
+            vec4 raymarch(vec3 ro, vec3 rd) {
+                float density = 0.0;
+                vec3 col = vec3(0.0);
+                
+                // fluid repeller based on mouse tracking
+                vec3 repellerPos = vec3(uMouse.x * 5.0, uMouse.y * 5.0, 0.0);
+                
+                float t = 0.0;
+                for(int i = 0; i < 45; i++) {
+                    vec3 p = ro + rd * t;
+                    
+                    float mouseDist = length(p.xy - repellerPos.xy);
+                    float swirl = smoothstep(3.0, 0.0, mouseDist);
+                    vec3 dp = p;
+                    
+                    // Stirring thick purple ink
+                    dp.xy += normalize(p.xy - repellerPos.xy + 0.0001) * swirl * 2.5;
+                    dp.z -= uTime * 0.4; // Whispy motion
+                    
+                    float n = fbm(dp * 0.6);
+                    
+                    // Volumetric Fog SDF plane
+                    float d = smoothstep(0.0, 1.0, -abs(p.z) + 1.2 + n * 2.5);
+                    d = max(0.0, d);
+                    
+                    if(d > 0.01) {
+                        float alpha = (1.0 - density) * d * 0.15;
+                        density += alpha;
+                        
+                        // Internal Light sources
+                        vec3 purple = vec3(0.44, 0.0, 1.0); // Electric Purple #7000ff
+                        vec3 pink   = vec3(1.0, 0.0, 0.46); // Vivid Pink #ff0077
+                        vec3 localCol = mix(purple, pink, smoothstep(-0.5, 0.5, n));
+                        
+                        col += localCol * alpha * uBrightness;
+                    }
+                    
+                    t += 0.15 + d * 0.1; 
+                    if(density > 0.99 || t > 10.0) break;
+                }
+                return vec4(col, density);
+            }
+
+            void main() {
+                // UV normalize and aspect correction
+                vec2 uv = (vUv - 0.5) * 2.0;
+                uv.x *= uResolution.x / uResolution.y;
+                
+                vec3 ro = vec3(0.0, 0.0, 4.0);
+                vec3 rd = normalize(vec3(uv, -1.0));
+                
+                vec4 bgCol = vec4(0.0, 0.0, 0.0, 1.0); // Deep Obsidian base
+                vec4 res = raymarch(ro, rd);
+                
+                vec3 finalCol = mix(bgCol.rgb, res.rgb, res.a);
+                gl_FragColor = vec4(finalCol, 1.0);
+            }
+        `,
+      depthWrite: false,
+      depthTest: false
+    });
+
+    const bgMesh = new THREE.Mesh(bgGeometry, bgMaterial);
+    bgMesh.frustumCulled = false;
+    bgMesh.renderOrder = -1; // Draw in background
+    scene.add(bgMesh);
+
+    //=========================================
+    // 3. 3D Parallax Elements (Rocks)
+    //=========================================
+    // Lighting for rocks
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.2);
+    scene.add(ambientLight);
+
+    const rimLight = new THREE.DirectionalLight(0x7000ff, 3.0);
+    rimLight.position.set(5, 5, -5);
+    scene.add(rimLight);
+
+    const pinkLight = new THREE.DirectionalLight(0xff0077, 1.5);
+    pinkLight.position.set(-5, -5, 2);
+    scene.add(pinkLight);
+
+    const rocks = [];
+    const rockGeo = new THREE.IcosahedronGeometry(1.5, 0); // Low-poly icosahedron
+    const rockMat = new THREE.MeshStandardMaterial({
+      color: 0x111111,
+      roughness: 0.95,
+      metalness: 0.1
+    });
+
+    for (let i = 0; i < 15; i++) {
+      const mesh = new THREE.Mesh(rockGeo, rockMat);
+
+      mesh.position.x = (Math.random() - 0.5) * 25;
+      mesh.position.y = (Math.random() - 0.5) * 30;
+      mesh.position.z = (Math.random() - 0.5) * 15 - 5;
+
+      mesh.rotation.x = Math.random() * Math.PI;
+      mesh.rotation.y = Math.random() * Math.PI;
+
+      const scale = Math.random() * 0.7 + 0.3;
+      mesh.scale.set(scale, scale, scale);
+
+      scene.add(mesh);
+      rocks.push({
+        mesh,
+        startY: mesh.position.y,
+        startRotX: mesh.rotation.x,
+        startRotY: mesh.rotation.y,
+        speed: Math.random() * 0.015 + 0.005
+      });
+    }
+
+    //=========================================
+    // 4. Post-Processing
+    //=========================================
+    const composer = new EffectComposer(renderer);
+    composer.addPass(new RenderPass(scene, camera));
+
+    // UnrealBloomPass (Dream-like glow: strength 2.0, radius 0.5)
+    const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 2.0, 0.5, 0.0);
+    composer.addPass(bloomPass);
+
+    // Custom Post-Processing: FilmGrain (5%) & Chromatic Aberration
+    const customPass = new ShaderPass({
+      uniforms: {
+        tDiffuse: { value: null },
+        uTime: { value: 0 },
+        uResolution: { value: new THREE.Vector2(window.innerWidth, window.innerHeight) }
+      },
+      vertexShader: `
+            varying vec2 vUv;
+            void main() {
+                vUv = uv;
+                gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+            }
+        `,
+      fragmentShader: `
+            uniform sampler2D tDiffuse;
+            uniform float uTime;
+            uniform vec2 uResolution;
+            varying vec2 vUv;
+
+            float hash(vec2 p) {
+                p = fract(p * vec2(123.34, 456.21));
+                p += dot(p, p + 45.32);
+                return fract(p.x * p.y);
+            }
+
+            void main() {
+                vec2 uv = vUv;
+                
+                // Chromatic Aberration at corners
+                vec2 fromCenter = uv - 0.5;
+                float dist = length(fromCenter);
+                float caAmount = pow(dist, 2.5) * 0.04; // subtle shift
+                
+                float r = texture2D(tDiffuse, uv + fromCenter * caAmount).r;
+                float g = texture2D(tDiffuse, uv).g;
+                float b = texture2D(tDiffuse, uv - fromCenter * caAmount).b;
+                
+                vec3 color = vec3(r, g, b);
+                
+                // Film Grain (5% opacity)
+                float noise = hash(uv * uResolution + uTime * 1000.0) - 0.5;
+                color += noise * 0.05;
+                
+                gl_FragColor = vec4(color, 1.0);
+            }
+        `
+    });
+    composer.addPass(customPass);
+
+    //=========================================
+    // 5. Interaction & Events
+    //=========================================
+    let targetMouse = { x: 0, y: 0 };
+    let currentMouse = { x: 0, y: 0 };
+
+    window.addEventListener('mousemove', (e) => {
+      targetMouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+      targetMouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+    });
+
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      composer.setSize(window.innerWidth, window.innerHeight);
+
+      uniforms.uResolution.value.set(window.innerWidth, window.innerHeight);
+      customPass.uniforms.uResolution.value.set(window.innerWidth, window.innerHeight);
+    });
+
+    //=========================================
+    // 6. Security Gate UI Logic
+    //=========================================
+    const pinInput = document.getElementById('pin-input');
+    const securityGate = document.getElementById('security-gate');
+    const pinContainer = document.querySelector('.pin-container');
+
+    pinInput.addEventListener('input', (e) => {
+      if (e.target.value === '1234') {
+        pinInput.blur();
+
+        // Shrink PIN UI
+        gsap.to(pinContainer, { scale: 0, opacity: 0, duration: 1, ease: 'power4.inOut' });
+
+        // Fade out the overlay
+        gsap.to(securityGate, {
+          background: 'rgba(0,0,0,0)', duration: 1, delay: 0.5, onComplete: () => {
+            securityGate.style.pointerEvents = 'none';
+          }
+        });
+
+        // Animate WebGL uBrightness (0 -> 1)
+        gsap.to(uniforms.uBrightness, { value: 1.0, duration: 2.0, delay: 0.5, ease: 'power2.inOut' });
+
+        // Lens Flare Burst via Bloom Pass intensity
+        gsap.to(bloomPass, { strength: 8.0, duration: 0.3, yoyo: true, repeat: 1, delay: 0.8, ease: 'power2.out' });
+      }
+    });
+
+    //=========================================
+    // 7. Render Loop
+    //=========================================
+    const clock = new THREE.Clock();
+
+    function animate() {
+      requestAnimationFrame(animate);
+
+      const delta = clock.getDelta();
+      const elapsedTime = clock.getElapsedTime();
+
+      // Update Lenis
+      lenis.raf(elapsedTime * 1000);
+
+      // Update Mouse Uniforms (easing)
+      currentMouse.x += (targetMouse.x - currentMouse.x) * 0.05;
+      currentMouse.y += (targetMouse.y - currentMouse.y) * 0.05;
+      uniforms.uMouse.value.set(currentMouse.x, currentMouse.y);
+
+      uniforms.uTime.value = elapsedTime;
+      customPass.uniforms.uTime.value = elapsedTime;
+
+      // Parallax Rock Animations
+      const scrollY = window.scrollY;
+      rocks.forEach(rock => {
+        // Apply parallax based on scroll
+        rock.mesh.position.y = rock.startY + scrollY * rock.speed;
+
+        // Apply slight continuous rotation + scroll based rotation
+        rock.mesh.rotation.x = rock.startRotX + elapsedTime * 0.1 + scrollY * rock.speed * 0.1;
+        rock.mesh.rotation.y = rock.startRotY + elapsedTime * 0.15 + scrollY * rock.speed * 0.1;
+      });
+
+      // Render via Composer
+      composer.render();
+    }
+
+    animate();
+  </script>
+
+</body>
+
+</html>
