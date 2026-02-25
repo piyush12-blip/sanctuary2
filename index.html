@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sanctuary | Limitless</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <style>
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; font-family: 'Inter', sans-serif; color: white; }
+        canvas { display: block; position: fixed; inset: 0; z-index: 1; opacity: 0; transition: opacity 2s ease; }
+        
+        /* --- SECURITY GATE --- */
+        #gate { position: fixed; inset: 0; z-index: 100; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #000; transition: 1s; }
+        #pass { background: none; border: none; border-bottom: 2px solid #7000ff; color: #7000ff; font-size: 3rem; text-align: center; outline: none; width: 250px; letter-spacing: 10px; margin-bottom: 20px; }
+        .hint { font-family: monospace; color: #444; font-size: 10px; letter-spacing: 2px; }
+        
+        #overlay { position: fixed; inset: 0; z-index: 10; pointer-events: none; display: flex; align-items: center; justify-content: center; mix-blend-mode: exclusion; opacity: 0; }
+        .hero { font-size: 10vw; font-weight: 900; text-transform: uppercase; text-align: center; line-height: 0.8; }
+    </style>
+</head>
+<body>
+
+    <div id="gate">
+        <input type="password" id="pass" maxlength="4" placeholder="••••">
+        <div class="hint">SANCTUARY ACCESS REQUIRED</div>
+    </div>
+
+    <div id="overlay">
+        <h1 class="hero">LIMITLESS<br>BEGINS</h1>
+    </div>
+
+    <canvas id="canvas"></canvas>
+
+    <script>
+        // --- ☁️ ORGANIMO CLOUD SHADER MATH ---
+        const vertexShader = `
+            varying vec2 vUv;
+            void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }
+        `;
+
+        const fragmentShader = `
+            uniform float uTime;
+            varying vec2 vUv;
+            
+            // Simulating the Organimo Cloud noise
+            void main() {
+                vec2 p = vUv * 2.0 - 1.0;
+                float d = length(p);
+                float cloud = 0.0;
+                for(float i = 1.0; i < 5.0; i++) {
+                    cloud += 0.1 / length(p + vec2(sin(uTime * 0.5 * i), cos(uTime * 0.3 * i)) * 0.5);
+                }
+                vec3 color = mix(vec3(0.05, 0.0, 0.1), vec3(0.44, 0.0, 1.0), cloud * (1.0 - d));
+                gl_FragColor = vec4(color, 1.0);
+            }
+        `;
+
+        // --- ⚙️ ENGINE SETUP ---
+        const scene = new THREE.Scene();
+        const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+        const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('canvas'), antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+
+        const geometry = new THREE.PlaneGeometry(2, 2);
+        const material = new THREE.ShaderMaterial({
+            uniforms: { uTime: { value: 0 } },
+            vertexShader,
+            fragmentShader
+        });
+
+        const mesh = new THREE.Mesh(geometry, material);
+        scene.add(mesh);
+
+        function animate(time) {
+            material.uniforms.uTime.value = time * 0.001;
+            renderer.render(scene, camera);
+            requestAnimationFrame(animate);
+        }
+        animate();
+
+        // --- 🔓 ACCESS LOGIC ---
+        document.getElementById('pass').addEventListener('input', (e) => {
+            if(e.target.value === "1234") { // Change to your password
+                gsap.to("#gate", { opacity: 0, duration: 1.5, onComplete: () => document.getElementById('gate').remove() });
+                gsap.to("#canvas", { opacity: 1, duration: 3 });
+                gsap.to("#overlay", { opacity: 1, duration: 4, delay: 1 });
+            }
+        });
+
+        window.addEventListener('resize', () => {
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    </script>
+</body>
+</html>
