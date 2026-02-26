@@ -15,7 +15,7 @@
     html {
       margin: 0;
       padding: 0;
-      background: transparent; /* PERFECT FIX: Curtain is lifted! */
+      background: transparent; 
       color: #ffffff;
       font-family: 'Space Grotesk', sans-serif;
       overflow-x: hidden;
@@ -236,7 +236,7 @@
     // 0. Performance & Device Detection
     //=========================================
     const isMobile = window.innerWidth <= 768 || /Mobi|Android/i.test(navigator.userAgent);
-    const pixelRatio = Math.min(window.devicePixelRatio, 0.75); // Hard cap pixel ratio
+    const pixelRatio = Math.min(window.devicePixelRatio, 0.75); 
     const oceanSegmentCount = isMobile ? 64 : 128;
 
     //=========================================
@@ -361,7 +361,7 @@
     const bgUniforms = {
       uTime: { value: 0 },
       uResolution: { value: new THREE.Vector2(window.innerWidth, window.innerHeight) },
-      uBgColor: { value: new THREE.Color(0x000000) } // <-- FIXED: Links color logic to the shader!
+      uBgColor: { value: new THREE.Color(0x000000) } 
     };
 
     const bgMaterial = new THREE.ShaderMaterial({
@@ -376,7 +376,7 @@
       fragmentShader: `
             uniform float uTime;
             uniform vec2 uResolution;
-            uniform vec3 uBgColor; // <-- FIXED
+            uniform vec3 uBgColor; 
             varying vec2 vUv;
 
             vec4 permute(vec4 x){return mod(((x*34.0)+1.0)*x, 289.0);}
@@ -474,7 +474,7 @@
                 vec3 ro = vec3(0.0, 0.0, 4.0);
                 vec3 rd = normalize(vec3(uv, -1.0));
                 
-                vec4 bgCol = vec4(uBgColor, 1.0); // <-- FIXED
+                vec4 bgCol = vec4(uBgColor, 1.0); 
                 vec4 res = raymarch(ro, rd);
                 
                 vec3 finalCol = mix(bgCol.rgb, res.rgb, res.a);
@@ -492,9 +492,10 @@
     scene.add(bgMesh);
 
     //=========================================
-    // 5. Light setup
+    // 5. Light setup (FIXED THE PITCH BLACK ABYSS)
     //=========================================
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.2);
+    // We boost the ambient light so we can see the shapes in the deep water
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6); 
     scene.add(ambientLight);
 
     const dirLight = new THREE.DirectionalLight(0x7000ff, 2.0);
@@ -511,6 +512,11 @@
     scene.add(imageLight);
     scene.add(imageLight.target);
 
+    // FIXED: The Submarine Flashlight - Attached to the camera so it lights up the trench
+    const submarineLight = new THREE.PointLight(0xffffff, 3.0, 150);
+    camera.add(submarineLight);
+    scene.add(camera); // Must add camera to scene for attached lights to work
+
     //=========================================
     // 6. Phase 1 & 2 & 3 Procedural 3D Assets 
     //=========================================
@@ -519,10 +525,9 @@
     const phase1Group = new THREE.Group();
     scene.add(phase1Group);
 
-    // Procedural Rock Core
     const rockGeo = new THREE.IcosahedronGeometry(12, 4);
     const rockMat = new THREE.MeshStandardMaterial({
-      color: 0x111111,
+      color: 0x222222,
       roughness: 0.9,
       metalness: 0.1,
       flatShading: true
@@ -539,7 +544,6 @@
     const rock = new THREE.Mesh(rockGeo, rockMat);
     phase1Group.add(rock);
 
-    // Placeholder Product Jar
     const jarGeo = new THREE.CylinderGeometry(2, 2, 6, 32);
     const jarMat = new THREE.MeshPhysicalMaterial({
       color: 0xffffff,
@@ -557,19 +561,16 @@
 
     const matPhase2 = new THREE.MeshStandardMaterial({ color: 0xff0077, roughness: 0.4, metalness: 0.8 });
 
-    // Torus (Shell)
     const shape1 = new THREE.Mesh(new THREE.TorusGeometry(3, 1, 16, 100), matPhase2);
     shape1.position.set(-15, -15, -30);
     shape1.rotation.x = Math.PI / 2;
     phase2Group.add(shape1);
 
-    // Cone (Fish)
     const shape2 = new THREE.Mesh(new THREE.ConeGeometry(3, 8, 32), new THREE.MeshStandardMaterial({ color: 0x00aaff, roughness: 0.2, metalness: 0.5 }));
     shape2.position.set(15, -18, -40);
     shape2.rotation.z = Math.PI / 4;
     phase2Group.add(shape2);
 
-    // Cylinder (Pillar)
     const shape3 = new THREE.Mesh(new THREE.CylinderGeometry(2, 2, 10, 32), new THREE.MeshStandardMaterial({ color: 0x7000ff, roughness: 0.5, metalness: 0.2 }));
     shape3.position.set(0, -20, -50);
     shape3.rotation.x = Math.PI / 4;
@@ -581,8 +582,8 @@
     const phase3Group = new THREE.Group();
     scene.add(phase3Group);
 
-    // Trench Walls
-    const wallGeo = new THREE.PlaneGeometry(50, 200, 32, 64);
+    // Trench Walls (Extended so they wrap around the camera)
+    const wallGeo = new THREE.PlaneGeometry(100, 300, 32, 64);
     const wallMat = new THREE.MeshStandardMaterial({ color: 0x0a0a0a, roughness: 1.0, wireframe: isMobile });
 
     const wallPos = wallGeo.attributes.position;
@@ -592,12 +593,12 @@
     wallGeo.computeVertexNormals();
 
     const leftWall = new THREE.Mesh(wallGeo, wallMat);
-    leftWall.position.set(-25, -100, -80);
+    leftWall.position.set(-25, -100, -50);
     leftWall.rotation.y = Math.PI / 2;
     phase3Group.add(leftWall);
 
     const rightWall = new THREE.Mesh(wallGeo, wallMat);
-    rightWall.position.set(25, -100, -80);
+    rightWall.position.set(25, -100, -50);
     rightWall.rotation.y = -Math.PI / 2;
     phase3Group.add(rightWall);
 
@@ -619,10 +620,10 @@
       color: 0xffffff,
       transmission: 1.0,
       opacity: 1.0,
-      metalness: 0,
+      metalness: 0.1,
       roughness: 0.1,
       ior: 1.5,
-      thickness: 0.5,
+      thickness: 2.0, // Increased thickness for better light bending
       specularIntensity: 1.0
     });
 
@@ -631,6 +632,7 @@
 
     for (let i = 0; i < 3; i++) {
       const sphere = new THREE.Mesh(sphereGeo, glassMat);
+      // Spheres are placed at Z: -80 and dropping down the Y axis
       sphere.position.set((i - 1) * 12, -70 - (i * 30), -80);
 
       const innerGeo = i === 0 ? new THREE.BoxGeometry(2, 2, 2) : i === 1 ? new THREE.TorusGeometry(1.5, 0.4, 16, 32) : new THREE.TetrahedronGeometry(2);
@@ -792,7 +794,7 @@
     }
 
     //=========================================
-    // 9. Post-Processing Context (FIXED!)
+    // 9. Post-Processing Context
     //=========================================
     const godRayUniforms = {
       tDiffuse: { value: null },
@@ -854,8 +856,9 @@
     tl.to(camera.position, { x: 0, y: -5, z: -40, ease: "none" }, 0.3);
 
     // --- PHASE 3: The Deep Trench (60% - 100%) ---
-    tl.to(camera.position, { x: 0, y: -180, z: -80, ease: "power2.inOut" }, 0.6);
-    tl.to(camera.rotation, { x: Math.PI / 6, ease: "power1.inOut" }, 0.6);
+    // FIXED: Dropped camera to Z: -50 so we sit right in front of the spheres instead of crashing through them!
+    tl.to(camera.position, { x: 0, y: -140, z: -50, ease: "power2.inOut" }, 0.6);
+    tl.to(camera.rotation, { x: Math.PI / 8, ease: "power1.inOut" }, 0.6);
 
     // Animate Colors (Fog and BG) to deep purple
     tl.to(colorTarget.fogColor, {
@@ -907,7 +910,7 @@
 
       // Cloud Logic
       bgUniforms.uTime.value = elapsedTime;
-      bgUniforms.uBgColor.value.copy(colorTarget.bgColor); // FIXED: Activates deep sea purple!
+      bgUniforms.uBgColor.value.copy(colorTarget.bgColor); 
 
       // Phase 2 Shapes Animation (Bobbing)
       phase2Shapes.forEach((shape, i) => {
