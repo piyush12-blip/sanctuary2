@@ -4,7 +4,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Organimo R&D - The Descent (Optimized Edition)</title>
+  <title>Organimo R&D - The Descent (Awwwards Edition)</title>
+  <!-- Preload fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link
@@ -15,7 +16,7 @@
     html {
       margin: 0;
       padding: 0;
-      background: transparent; /* FIXED: Removed solid black that hides canvas */
+      background: transparent;
       color: #ffffff;
       font-family: 'Space Grotesk', sans-serif;
       overflow-x: hidden;
@@ -180,6 +181,7 @@
 
 <body>
 
+  <!-- Custom Cursor Elements -->
   <div id="cursor-dot"></div>
   <div id="cursor-ring"></div>
 
@@ -205,6 +207,7 @@
     </div>
   </div>
 
+  <!-- Import Maps -->
   <script type="importmap">
   {
     "imports": {
@@ -234,12 +237,12 @@
     gsap.registerPlugin(ScrollTrigger);
 
     //=========================================
-    // 0. Performance & Device Detection (FIXED FOR LAG)
+    // 0. Performance & Device Detection
     //=========================================
     const isMobile = window.innerWidth <= 768 || /Mobi|Android/i.test(navigator.userAgent);
-    const pixelRatio = 1; // FIXED: Hardcapped to 1 to kill lag on high-res monitors
-    const useBloom = false; // FIXED: Disabled to prevent the Chrome Black Screen crash
-    const oceanSegmentCount = 128; // FIXED: Halved to improve performance
+    const pixelRatio = Math.min(window.devicePixelRatio, 0.75); // Hard cap pixel ratio
+    const useBloom = false; // Hardcode bloom to false to prevent crash
+    const oceanSegmentCount = isMobile ? 64 : 128;
 
     //=========================================
     // 1. Text Splitting Utility (Typography)
@@ -340,7 +343,7 @@
     }
 
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x000000); // Explicitly setting background to black
+    // Slightly denser fog to blend the deep black into the environment
     scene.fog = new THREE.FogExp2(0x000000, 0.025);
 
     const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 500);
@@ -372,6 +375,7 @@
             varying vec2 vUv;
             void main() {
                 vUv = uv;
+                // Full screen quad in clip space
                 gl_Position = vec4(position, 1.0);
             }
         `,
@@ -429,7 +433,7 @@
                 float sum = 0.0;
                 float amp = 1.0;
                 float freq = 1.0;
-                for(int i = 0; i < 6; i++) {
+                for(int i = 0; i < 3; i++) {
                     sum += snoise(p * freq) * amp;
                     amp *= 0.5;
                     freq *= 2.0;
@@ -442,11 +446,10 @@
                 vec3 col = vec3(0.0);
                 
                 float t = 0.0;
-                // FIXED: Reduced loop from 35 to 20 to kill raymarching lag
-                for(int i = 0; i < 20; i++) {
+                for(int i = 0; i < 15; i++) {
                     vec3 p = ro + rd * t;
                     vec3 dp = p;
-                    dp.z -= uTime * 0.2; 
+                    dp.z -= uTime * 0.2; // Slow whispy motion
                     
                     float n = fbm(dp * 0.4);
                     float d = smoothstep(0.0, 1.0, -abs(p.z) + 1.2 + n * 2.5);
@@ -460,7 +463,7 @@
                         vec3 pink   = vec3(1.0, 0.0, 0.46);
                         vec3 localCol = mix(purple, pink, smoothstep(-0.5, 0.5, n));
                         
-                        col += localCol * alpha * 0.5; 
+                        col += localCol * alpha * 0.5; // Slightly dimmer in background
                     }
                     
                     t += 0.2 + d * 0.1; 
@@ -490,7 +493,7 @@
 
     const bgMesh = new THREE.Mesh(bgGeometry, bgMaterial);
     bgMesh.frustumCulled = false;
-    bgMesh.renderOrder = -100; 
+    bgMesh.renderOrder = -100; // Force to render absolutely first
     scene.add(bgMesh);
 
     //=========================================
@@ -514,80 +517,140 @@
     scene.add(imageLight.target);
 
     //=========================================
-    // 6. Floating WebGL Images
+    // 6. Phase 1 & 2 & 3 Procedural 3D Assets 
     //=========================================
-    const planeImages = [];
-    const imageGeo = new THREE.PlaneGeometry(8, 5, 32, 32);
 
-    const imageVertexShader = `
-        uniform float uVelocity;
-        uniform float uTime;
-        varying vec2 vUv;
+    // Phase 1: The Peak (Rock & Jar)
+    const phase1Group = new THREE.Group();
+    scene.add(phase1Group);
 
-        void main() {
-            vUv = uv;
-            vec3 pos = position;
-            
-            float curve = sin(uv.x * 3.1415) * uVelocity * 0.5;
-            pos.z += curve;
-            pos.y += sin(uTime * 2.0 + uv.x * 2.0) * 0.1;
-
-            gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
-        }
-    `;
-
-    const imageFragmentShader = `
-        uniform sampler2D tex;
-        varying vec2 vUv;
-        void main() {
-            vec4 texColor = texture2D(tex, vUv);
-            gl_FragColor = texColor;
-        }
-    `;
-
-    function createProceduralTexture(color1, color2, label) {
-      const canvas = document.createElement('canvas');
-      canvas.width = 1024; canvas.height = 600;
-      const ctx = canvas.getContext('2d');
-      const grd = ctx.createLinearGradient(0, 0, 1024, 600);
-      grd.addColorStop(0, color1);
-      grd.addColorStop(1, color2);
-      ctx.fillStyle = grd;
-      ctx.fillRect(0, 0, 1024, 600);
-      ctx.fillStyle = '#ffffff';
-      ctx.font = '60px Space Grotesk';
-      ctx.fillText(label, 100, 300);
-      return new THREE.CanvasTexture(canvas);
-    }
-
-    const planeData = [
-      { pos: [12, 10, 0], rot: [0, -Math.PI / 6, 0], tex: createProceduralTexture('#7000ff', '#111111', 'PROJECT ALPHA') },
-      { pos: [-12, 2, -15], rot: [0, Math.PI / 6, 0], tex: createProceduralTexture('#ff0077', '#111111', 'PROJECT BETA') },
-      { pos: [10, -5, -30], rot: [-Math.PI / 12, -Math.PI / 5, 0], tex: createProceduralTexture('#00aaff', '#111111', 'PROJECT GAMMA') }
-    ];
-
-    planeData.forEach(data => {
-      const mat = new THREE.ShaderMaterial({
-        uniforms: {
-          tex: { value: data.tex },
-          uVelocity: { value: 0 },
-          uTime: { value: 0 }
-        },
-        vertexShader: imageVertexShader,
-        fragmentShader: imageFragmentShader,
-        side: THREE.DoubleSide,
-        transparent: true
-      });
-
-      const mesh = new THREE.Mesh(imageGeo, mat);
-      mesh.position.set(...data.pos);
-      mesh.rotation.set(...data.rot);
-      scene.add(mesh);
-      planeImages.push({ mesh, uniforms: mat.uniforms });
+    // Procedural Rock Core
+    const rockGeo = new THREE.IcosahedronGeometry(12, 4);
+    const rockMat = new THREE.MeshStandardMaterial({
+      color: 0x111111,
+      roughness: 0.9,
+      metalness: 0.1,
+      flatShading: true
     });
 
+    // Displace rock vertices slightly
+    const pos = rockGeo.attributes.position;
+    for (let i = 0; i < pos.count; i++) {
+      let v = new THREE.Vector3(pos.getX(i), pos.getY(i), pos.getZ(i));
+      v.normalize().multiplyScalar(12 + Math.random() * 2);
+      pos.setXYZ(i, v.x, v.y, v.z);
+    }
+    rockGeo.computeVertexNormals();
+
+    const rock = new THREE.Mesh(rockGeo, rockMat);
+    phase1Group.add(rock);
+
+    // Placeholder Product Jar
+    const jarGeo = new THREE.CylinderGeometry(2, 2, 6, 32);
+    const jarMat = new THREE.MeshPhysicalMaterial({
+      color: 0xffffff,
+      roughness: 0.1,
+      metalness: 0.9,
+      clearcoat: 1.0
+    });
+    const jar = new THREE.Mesh(jarGeo, jarMat);
+    jar.position.y = 15;
+    phase1Group.add(jar);
+
+    // Phase 2: The Surreal Surface (Floating Shapes)
+    const phase2Group = new THREE.Group();
+    scene.add(phase2Group);
+
+    const matPhase2 = new THREE.MeshStandardMaterial({ color: 0xff0077, roughness: 0.4, metalness: 0.8 });
+
+    // Torus (Shell)
+    const shape1 = new THREE.Mesh(new THREE.TorusGeometry(3, 1, 16, 100), matPhase2);
+    shape1.position.set(-15, -15, -30);
+    shape1.rotation.x = Math.PI / 2;
+    phase2Group.add(shape1);
+
+    // Cone (Fish)
+    const shape2 = new THREE.Mesh(new THREE.ConeGeometry(3, 8, 32), new THREE.MeshStandardMaterial({ color: 0x00aaff, roughness: 0.2, metalness: 0.5 }));
+    shape2.position.set(15, -18, -40);
+    shape2.rotation.z = Math.PI / 4;
+    phase2Group.add(shape2);
+
+    // Cylinder (Pillar)
+    const shape3 = new THREE.Mesh(new THREE.CylinderGeometry(2, 2, 10, 32), new THREE.MeshStandardMaterial({ color: 0x7000ff, roughness: 0.5, metalness: 0.2 }));
+    shape3.position.set(0, -20, -50);
+    shape3.rotation.x = Math.PI / 4;
+    phase2Group.add(shape3);
+
+    const phase2Shapes = [shape1, shape2, shape3];
+
+    // Phase 3: The Deep Trench (Walls, Bubbles, UI Spheres)
+    const phase3Group = new THREE.Group();
+    scene.add(phase3Group);
+
+    // Trench Walls
+    const wallGeo = new THREE.PlaneGeometry(50, 200, 32, 64);
+    const wallMat = new THREE.MeshStandardMaterial({ color: 0x0a0a0a, roughness: 1.0, wireframe: isMobile }); // Optimization for mobile
+
+    const wallPos = wallGeo.attributes.position;
+    for (let i = 0; i < wallPos.count; i++) {
+      wallPos.setZ(i, Math.random() * 8);
+    }
+    wallGeo.computeVertexNormals();
+
+    const leftWall = new THREE.Mesh(wallGeo, wallMat);
+    leftWall.position.set(-25, -100, -80);
+    leftWall.rotation.y = Math.PI / 2;
+    phase3Group.add(leftWall);
+
+    const rightWall = new THREE.Mesh(wallGeo, wallMat);
+    rightWall.position.set(25, -100, -80);
+    rightWall.rotation.y = -Math.PI / 2;
+    phase3Group.add(rightWall);
+
+    // Bubble Particles
+    const bubbleGeo = new THREE.BufferGeometry();
+    const bubbleCount = 200;
+    const bubblePos = new Float32Array(bubbleCount * 3);
+    for (let i = 0; i < bubbleCount * 3; i++) {
+      bubblePos[i] = (Math.random() - 0.5) * 40; // spread
+    }
+    bubbleGeo.setAttribute('position', new THREE.BufferAttribute(bubblePos, 3));
+    const bubbleMat = new THREE.PointsMaterial({ color: 0xaaaaff, size: 0.5, transparent: true, opacity: 0.6 });
+    const bubbles = new THREE.Points(bubbleGeo, bubbleMat);
+    bubbles.position.set(0, -100, -80);
+    phase3Group.add(bubbles);
+
+    // 3 Refractive Glass UI Spheres
+    const glassMat = new THREE.MeshPhysicalMaterial({
+      color: 0xffffff,
+      transmission: 1.0,
+      opacity: 1.0,
+      metalness: 0,
+      roughness: 0.1,
+      ior: 1.5,
+      thickness: 0.5,
+      specularIntensity: 1.0
+    });
+
+    const sphereGeo = new THREE.SphereGeometry(4, 32, 32);
+    const uiSpheres = [];
+
+    for (let i = 0; i < 3; i++) {
+      const sphere = new THREE.Mesh(sphereGeo, glassMat);
+      sphere.position.set((i - 1) * 12, -70 - (i * 30), -80);
+
+      // Inner glowing primitive
+      const innerGeo = i === 0 ? new THREE.BoxGeometry(2, 2, 2) : i === 1 ? new THREE.TorusGeometry(1.5, 0.4, 16, 32) : new THREE.TetrahedronGeometry(2);
+      const innerMat = new THREE.MeshBasicMaterial({ color: i === 0 ? 0xff0077 : i === 1 ? 0x00aaff : 0x7000ff });
+      const innerShape = new THREE.Mesh(innerGeo, innerMat);
+      sphere.add(innerShape);
+
+      phase3Group.add(sphere);
+      uiSpheres.push(sphere);
+    }
+
     //=========================================
-    // 7. Asset Compression Pipeline & Architecture Environment
+    // 7. Asset Compression Pipeline (DRACO & KTX2) & Architecture Environment
     //=========================================
     const dracoLoader = new DRACOLoader();
     dracoLoader.setDecoderPath('https://unpkg.com/three@0.160.0/examples/jsm/libs/draco/gltf/');
@@ -612,6 +675,16 @@
       architectureGroup.add(step);
     }
 
+    // <-- ATTACH YOUR COMPRESSED GLB MODEL HERE -->
+    /*
+    gltfLoader.load('path_to_compressed_staircase.glb', (gltf) => {
+        architectureGroup.clear();
+        const model = gltf.scene;
+        architectureGroup.add(model);
+        hideLoading();
+    });
+    */
+
     function hideLoading() {
       const loaderUi = document.getElementById('loading');
       if (loaderUi) {
@@ -624,7 +697,7 @@
     //=========================================
     // 8. GPGPU / FBO Physics for Ocean Ripples
     //=========================================
-    const fboSize = 128; // FIXED: Dropped from 256 to 128 to kill lag
+    const fboSize = 128;
     const gpuCompute = new GPUComputationRenderer(fboSize, fboSize, renderer);
     if (isMobile) gpuCompute.setDataType(THREE.HalfFloatType);
 
@@ -686,7 +759,7 @@
 
     const oceanUniforms = {
       uHeightmap: { value: null },
-      uColorDeep: { value: new THREE.Color('#000000') }, 
+      uColorDeep: { value: new THREE.Color('#000000') }, // Ensure it blends into fog
       uColorShallow: { value: new THREE.Color('#3300aa') },
       uTime: { value: 0 }
     };
@@ -748,41 +821,47 @@
     }
 
     //=========================================
-    // 9. Post-Processing Context (DISABLED FOR STABILITY)
+    // 9. Post-Processing Context
     //=========================================
-    let composer;
-    if (useBloom) {
-      composer = new EffectComposer(renderer);
-      composer.addPass(new RenderPass(scene, camera));
-      const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.2, 0.4, 0.1);
-      composer.addPass(bloomPass);
+    // God Rays / Underwater Light Post-Processing Pass (Simplified additive blend)
+    const godRayUniforms = {
+      tDiffuse: { value: null },
+      uTime: { value: 0 },
+      uColor: { value: new THREE.Color(0x7000ff) },
+      uIntensity: { value: 0.0 }
+    };
 
-      const filmPass = new ShaderPass({
-        uniforms: {
-          tDiffuse: { value: null },
-          uTime: { value: 0 },
-          uAmount: { value: 0.04 }
-        },
-        vertexShader: `
-              varying vec2 vUv;
-              void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }
-          `,
-        fragmentShader: `
-              uniform sampler2D tDiffuse;
-              uniform float uTime;
-              uniform float uAmount;
-              varying vec2 vUv;
-              float random(vec2 p) { return fract(sin(dot(p.xy, vec2(12.9898,78.233))) * 43758.5453123); }
-              void main() {
-                  vec4 color = texture2D(tDiffuse, vUv);
-                  float noise = (random(vUv + uTime) - 0.5) * uAmount;
-                  color.rgb += noise;
-                  gl_FragColor = color;
-              }
-          `
-      });
-      composer.addPass(filmPass);
-    }
+    const godRayPass = new ShaderPass({
+      uniforms: godRayUniforms,
+      vertexShader: `
+            varying vec2 vUv;
+            void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }
+        `,
+      fragmentShader: `
+            uniform sampler2D tDiffuse;
+            uniform float uTime;
+            uniform vec3 uColor;
+            uniform float uIntensity;
+            varying vec2 vUv;
+            
+            void main() {
+                vec4 texel = texture2D(tDiffuse, vUv);
+                
+                // Procedural vertical light rays
+                float ray = sin(vUv.x * 20.0 + uTime) * sin(vUv.x * 10.0 - uTime * 0.5) * 0.5 + 0.5;
+                float fade = smoothstep(0.0, 1.0, vUv.y); // Fade out at bottom
+                
+                vec3 finalColor = texel.rgb + uColor * ray * fade * uIntensity;
+                gl_FragColor = vec4(finalColor, texel.a);
+            }
+        `
+    });
+
+    // Custom Composer 
+    composer = new EffectComposer(renderer);
+    composer.addPass(new RenderPass(scene, camera));
+    composer.addPass(godRayPass); // Add the God Rays pass
+
 
     //=========================================
     // 10. GSAP ScrollTrigger Master Journey 
@@ -796,11 +875,46 @@
       }
     });
 
-    // Camera Motion
-    tl.to(camera.position, { x: 0, y: -5, z: -50, ease: "power2.inOut" }, 0);
-    tl.to(camera.rotation, { x: 0.1, ease: "power1.inOut" }, 0.2);
+    // Color Targets for Phase 3 Transition
+    const colorTarget = { fogColor: new THREE.Color(0x000000), bgColor: new THREE.Color(0x000000) };
 
-    // Staggered Character Animation Timings
+    // Initial State
+    camera.position.set(0, 20, 40);
+    camera.rotation.set(-Math.PI / 8, 0, 0);
+
+    // --- PHASE 1: The Peak (0% - 30%) ---
+    // Orbit the rock structure slowly
+    tl.to(camera.position, { x: 20, y: 15, z: 20, ease: "power1.inOut" }, 0.0);
+    tl.to(camera.rotation, { y: Math.PI / 4, ease: "power1.inOut" }, 0.0);
+
+    // Plunge down through the rock
+    tl.to(camera.position, { x: 0, y: -5, z: -10, ease: "power2.in" }, 0.15);
+    tl.to(camera.rotation, { x: 0, y: 0, ease: "power2.in" }, 0.15);
+
+    // --- PHASE 2: The Surreal Surface (30% - 60%) ---
+    // Emerge above the FBO water
+    tl.to(camera.position, { x: 0, y: -5, z: -40, ease: "none" }, 0.3);
+
+    // --- PHASE 3: The Deep Trench (60% - 100%) ---
+    // Break through water surface and go underwater
+    tl.to(camera.position, { x: 0, y: -180, z: -80, ease: "power2.inOut" }, 0.6);
+    tl.to(camera.rotation, { x: Math.PI / 6, ease: "power1.inOut" }, 0.6);
+
+    // Animate Colors (Fog and BG) to deep purple
+    tl.to(colorTarget.fogColor, {
+      r: 0.1, g: 0.0, b: 0.3,
+      onUpdate: () => scene.fog.color.copy(colorTarget.fogColor), ease: "power1.inOut"
+    }, 0.6);
+    tl.to(colorTarget.bgColor, {
+      r: 0.05, g: 0.0, b: 0.15,
+      onUpdate: () => bgUniforms.uTime.value += 0, // Just a placeholder onUpdate trigger
+      ease: "power1.inOut"
+    }, 0.6);
+
+    // Fade in God Rays
+    tl.to(godRayUniforms.uIntensity, { value: 1.0, ease: "power1.inOut" }, 0.6);
+
+    // Staggered Character Animation Timings - UI Updates
     gsap.to(textBlocksChunks[0], {
       y: '0%', duration: 1, stagger: 0.02, ease: 'power3.out',
       scrollTrigger: {
@@ -854,44 +968,39 @@
       currentVelocity = THREE.MathUtils.lerp(currentVelocity, targetVelocity, 0.1);
       const cappedVelocity = Math.max(-1.5, Math.min(1.5, currentVelocity));
 
-      planeImages.forEach(img => {
-        img.uniforms.uVelocity.value = cappedVelocity;
-        img.uniforms.uTime.value = elapsedTime;
+      // Phase 2 Shapes Animation (Bobbing)
+      phase2Shapes.forEach((shape, i) => {
+        shape.position.y += Math.sin(elapsedTime * 2.0 + i) * 0.02;
+        shape.rotation.x += 0.005;
+        shape.rotation.y += 0.005;
       });
 
-      // 1. Physics Raycasting Update
-      if (camera.position.z < -20 && !isMobile) {
-        raycaster.setFromCamera(mouseContext, camera);
-        const intersects = raycaster.intersectObject(interactionPlane);
+      // Phase 3 Under Water Animations
+      const bubblePositions = bubbles.geometry.attributes.position.array;
+      for (let i = 1; i < bubbleCount * 3; i += 3) {
+        bubblePositions[i] += 0.1; // move up
+        if (bubblePositions[i] > 100) bubblePositions[i] = -100; // reset
+      }
+      bubbles.geometry.attributes.position.needsUpdate = true;
 
-        if (intersects.length > 0) {
-          const uv = intersects[0].uv;
-          heightmapVariable.material.uniforms.mousePos.value.set(uv.x, uv.y);
-        } else {
-          heightmapVariable.material.uniforms.mousePos.value.set(-1, -1);
-        }
-      } else {
-        heightmapVariable.material.uniforms.mousePos.value.set(-1, -1);
+      uiSpheres.forEach((sphere, i) => {
+        sphere.rotation.y += 0.01;
+        sphere.children[0].rotation.x += 0.02; // Rotate inner shape
+        sphere.children[0].rotation.y += 0.02;
+      });
+
+      // Update God Rays time
+      if (composer) {
+        godRayUniforms.uTime.value = elapsedTime;
       }
 
-      // 2. Compute FBO Physics
-      gpuCompute.compute();
-
-      // 3. Feed result back to Ocean Shader
-      oceanUniforms.uHeightmap.value = gpuCompute.getCurrentRenderTarget(heightmapVariable).texture;
-      oceanUniforms.uTime.value = elapsedTime;
-
-      // 4. Update Film Grain Time
-      if (useBloom && composer.passes[2]) {
-        composer.passes[2].uniforms.uTime.value = elapsedTime;
-      }
+      // Background Color Transition handling
+      const currentBg = new THREE.Color(0, 0, 0);
+      currentBg.lerp(colorTarget.bgColor, 1.0);
+      bgMaterial.uniforms.uTime.value = elapsedTime;
 
       // 5. Render Scene
-      if (useBloom) {
-        composer.render();
-      } else {
-        renderer.render(scene, camera);
-      }
+      composer.render();
     }
 
     animate();
