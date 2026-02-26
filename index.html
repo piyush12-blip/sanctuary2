@@ -5,7 +5,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Organimo R&D - The Descent (Awwwards Edition)</title>
-  <!-- Preload fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link
@@ -16,7 +15,7 @@
     html {
       margin: 0;
       padding: 0;
-      background: transparent;
+      background: #000000; /* FIXED: Pure black background restored */
       color: #ffffff;
       font-family: 'Space Grotesk', sans-serif;
       overflow-x: hidden;
@@ -181,7 +180,6 @@
 
 <body>
 
-  <!-- Custom Cursor Elements -->
   <div id="cursor-dot"></div>
   <div id="cursor-ring"></div>
 
@@ -207,7 +205,6 @@
     </div>
   </div>
 
-  <!-- Import Maps -->
   <script type="importmap">
   {
     "imports": {
@@ -650,7 +647,7 @@
     }
 
     //=========================================
-    // 7. Asset Compression Pipeline (DRACO & KTX2) & Architecture Environment
+    // 7. Asset Compression Pipeline (DRACO & KTX2)
     //=========================================
     const dracoLoader = new DRACOLoader();
     dracoLoader.setDecoderPath('https://unpkg.com/three@0.160.0/examples/jsm/libs/draco/gltf/');
@@ -662,28 +659,6 @@
     const gltfLoader = new GLTFLoader();
     gltfLoader.setDRACOLoader(dracoLoader);
     gltfLoader.setKTX2Loader(ktx2Loader);
-
-    const architectureGroup = new THREE.Group();
-    scene.add(architectureGroup);
-
-    // Procedural Fallback Staircase
-    const stairGeo = new THREE.BoxGeometry(10, 0.5, 2);
-    const stairMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.8, metalness: 0.2 });
-    for (let i = 0; i < 40; i++) {
-      const step = new THREE.Mesh(stairGeo, stairMat);
-      step.position.set(0, 15 - i * 0.5, 20 - i * 2);
-      architectureGroup.add(step);
-    }
-
-    // <-- ATTACH YOUR COMPRESSED GLB MODEL HERE -->
-    /*
-    gltfLoader.load('path_to_compressed_staircase.glb', (gltf) => {
-        architectureGroup.clear();
-        const model = gltf.scene;
-        architectureGroup.add(model);
-        hideLoading();
-    });
-    */
 
     function hideLoading() {
       const loaderUi = document.getElementById('loading');
@@ -821,7 +796,7 @@
     }
 
     //=========================================
-    // 9. Post-Processing Context
+    // 9. Post-Processing Context (FIXED!)
     //=========================================
     // God Rays / Underwater Light Post-Processing Pass (Simplified additive blend)
     const godRayUniforms = {
@@ -857,8 +832,8 @@
         `
     });
 
-    // Custom Composer 
-    composer = new EffectComposer(renderer);
+    // Custom Composer - FIXED: Added "const" keyword
+    const composer = new EffectComposer(renderer);
     composer.addPass(new RenderPass(scene, camera));
     composer.addPass(godRayPass); // Add the God Rays pass
 
@@ -947,7 +922,8 @@
       camera.aspect = window.innerWidth / window.innerHeight;
       camera.updateProjectionMatrix();
       renderer.setSize(window.innerWidth, window.innerHeight);
-      if (useBloom) composer.setSize(window.innerWidth, window.innerHeight);
+      // FIXED: Always resize the composer to prevent window stretching bugs
+      composer.setSize(window.innerWidth, window.innerHeight); 
     });
 
     const clock = new THREE.Clock();
@@ -966,7 +942,6 @@
       const targetVelocity = (currentScrollY - prevScrollY) * 0.1;
       prevScrollY = currentScrollY;
       currentVelocity = THREE.MathUtils.lerp(currentVelocity, targetVelocity, 0.1);
-      const cappedVelocity = Math.max(-1.5, Math.min(1.5, currentVelocity));
 
       // Phase 2 Shapes Animation (Bobbing)
       phase2Shapes.forEach((shape, i) => {
@@ -974,6 +949,28 @@
         shape.rotation.x += 0.005;
         shape.rotation.y += 0.005;
       });
+
+      // 1. Physics Raycasting Update
+      if (camera.position.z < -20 && !isMobile) {
+        raycaster.setFromCamera(mouseContext, camera);
+        const intersects = raycaster.intersectObject(interactionPlane);
+
+        if (intersects.length > 0) {
+          const uv = intersects[0].uv;
+          heightmapVariable.material.uniforms.mousePos.value.set(uv.x, uv.y);
+        } else {
+          heightmapVariable.material.uniforms.mousePos.value.set(-1, -1);
+        }
+      } else {
+        heightmapVariable.material.uniforms.mousePos.value.set(-1, -1);
+      }
+
+      // 2. Compute FBO Physics
+      gpuCompute.compute();
+
+      // 3. Feed result back to Ocean Shader
+      oceanUniforms.uHeightmap.value = gpuCompute.getCurrentRenderTarget(heightmapVariable).texture;
+      oceanUniforms.uTime.value = elapsedTime;
 
       // Phase 3 Under Water Animations
       const bubblePositions = bubbles.geometry.attributes.position.array;
@@ -999,7 +996,7 @@
       currentBg.lerp(colorTarget.bgColor, 1.0);
       bgMaterial.uniforms.uTime.value = elapsedTime;
 
-      // 5. Render Scene
+      // 5. Render Scene through Composer
       composer.render();
     }
 
