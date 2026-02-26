@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Organimo R&D - The Descent (Awwwards Edition)</title>
+  <title>Organimo R&D - The Descent (Optimized Edition)</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link
@@ -15,7 +15,7 @@
     html {
       margin: 0;
       padding: 0;
-      background: #000000;
+      background: transparent; /* FIXED: Removed solid black that hides canvas */
       color: #ffffff;
       font-family: 'Space Grotesk', sans-serif;
       overflow-x: hidden;
@@ -234,12 +234,12 @@
     gsap.registerPlugin(ScrollTrigger);
 
     //=========================================
-    // 0. Performance & Device Detection
+    // 0. Performance & Device Detection (FIXED FOR LAG)
     //=========================================
     const isMobile = window.innerWidth <= 768 || /Mobi|Android/i.test(navigator.userAgent);
-    const pixelRatio = isMobile ? 1 : Math.min(window.devicePixelRatio, 2);
-    const useBloom = !isMobile;
-    const oceanSegmentCount = isMobile ? 128 : 256;
+    const pixelRatio = 1; // FIXED: Hardcapped to 1 to kill lag on high-res monitors
+    const useBloom = false; // FIXED: Disabled to prevent the Chrome Black Screen crash
+    const oceanSegmentCount = 128; // FIXED: Halved to improve performance
 
     //=========================================
     // 1. Text Splitting Utility (Typography)
@@ -340,7 +340,7 @@
     }
 
     const scene = new THREE.Scene();
-    // Slightly denser fog to blend the deep black into the environment
+    scene.background = new THREE.Color(0x000000); // Explicitly setting background to black
     scene.fog = new THREE.FogExp2(0x000000, 0.025);
 
     const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 500);
@@ -372,7 +372,6 @@
             varying vec2 vUv;
             void main() {
                 vUv = uv;
-                // Full screen quad in clip space
                 gl_Position = vec4(position, 1.0);
             }
         `,
@@ -443,10 +442,11 @@
                 vec3 col = vec3(0.0);
                 
                 float t = 0.0;
-                for(int i = 0; i < 35; i++) {
+                // FIXED: Reduced loop from 35 to 20 to kill raymarching lag
+                for(int i = 0; i < 20; i++) {
                     vec3 p = ro + rd * t;
                     vec3 dp = p;
-                    dp.z -= uTime * 0.2; // Slow whispy motion
+                    dp.z -= uTime * 0.2; 
                     
                     float n = fbm(dp * 0.4);
                     float d = smoothstep(0.0, 1.0, -abs(p.z) + 1.2 + n * 2.5);
@@ -460,7 +460,7 @@
                         vec3 pink   = vec3(1.0, 0.0, 0.46);
                         vec3 localCol = mix(purple, pink, smoothstep(-0.5, 0.5, n));
                         
-                        col += localCol * alpha * 0.5; // Slightly dimmer in background
+                        col += localCol * alpha * 0.5; 
                     }
                     
                     t += 0.2 + d * 0.1; 
@@ -490,7 +490,7 @@
 
     const bgMesh = new THREE.Mesh(bgGeometry, bgMaterial);
     bgMesh.frustumCulled = false;
-    bgMesh.renderOrder = -100; // Force to render absolutely first
+    bgMesh.renderOrder = -100; 
     scene.add(bgMesh);
 
     //=========================================
@@ -514,7 +514,7 @@
     scene.add(imageLight.target);
 
     //=========================================
-    // 6. Floating WebGL Images (Velocity Distorted Vertex Shader)
+    // 6. Floating WebGL Images
     //=========================================
     const planeImages = [];
     const imageGeo = new THREE.PlaneGeometry(8, 5, 32, 32);
@@ -587,7 +587,7 @@
     });
 
     //=========================================
-    // 7. Asset Compression Pipeline (DRACO & KTX2) & Architecture Environment
+    // 7. Asset Compression Pipeline & Architecture Environment
     //=========================================
     const dracoLoader = new DRACOLoader();
     dracoLoader.setDecoderPath('https://unpkg.com/three@0.160.0/examples/jsm/libs/draco/gltf/');
@@ -612,16 +612,6 @@
       architectureGroup.add(step);
     }
 
-    // <-- ATTACH YOUR COMPRESSED GLB MODEL HERE -->
-    /*
-    gltfLoader.load('path_to_compressed_staircase.glb', (gltf) => {
-        architectureGroup.clear();
-        const model = gltf.scene;
-        architectureGroup.add(model);
-        hideLoading();
-    });
-    */
-
     function hideLoading() {
       const loaderUi = document.getElementById('loading');
       if (loaderUi) {
@@ -634,7 +624,7 @@
     //=========================================
     // 8. GPGPU / FBO Physics for Ocean Ripples
     //=========================================
-    const fboSize = 256;
+    const fboSize = 128; // FIXED: Dropped from 256 to 128 to kill lag
     const gpuCompute = new GPUComputationRenderer(fboSize, fboSize, renderer);
     if (isMobile) gpuCompute.setDataType(THREE.HalfFloatType);
 
@@ -696,7 +686,7 @@
 
     const oceanUniforms = {
       uHeightmap: { value: null },
-      uColorDeep: { value: new THREE.Color('#000000') }, // Ensure it blends into fog
+      uColorDeep: { value: new THREE.Color('#000000') }, 
       uColorShallow: { value: new THREE.Color('#3300aa') },
       uTime: { value: 0 }
     };
@@ -758,7 +748,7 @@
     }
 
     //=========================================
-    // 9. Post-Processing Context
+    // 9. Post-Processing Context (DISABLED FOR STABILITY)
     //=========================================
     let composer;
     if (useBloom) {
@@ -767,7 +757,6 @@
       const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.2, 0.4, 0.1);
       composer.addPass(bloomPass);
 
-      // Simple custom pass for film grain to regain that raw awwwards fidelity
       const filmPass = new ShaderPass({
         uniforms: {
           tDiffuse: { value: null },
