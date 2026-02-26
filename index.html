@@ -1,10 +1,11 @@
-<!DOCTYPE html>
+!DOCTYPE html>
 <html lang="en">
 
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Organimo R&D - The Descent (Awwwards Edition)</title>
+  <!-- Preload fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link
@@ -15,7 +16,7 @@
     html {
       margin: 0;
       padding: 0;
-      background: transparent; 
+      background: transparent;
       color: #ffffff;
       font-family: 'Space Grotesk', sans-serif;
       overflow-x: hidden;
@@ -95,7 +96,7 @@
     }
 
     #scroll-container {
-      height: 500vh;
+      height: 1200vh;
       width: 100vw;
       position: relative;
     }
@@ -180,6 +181,7 @@
 
 <body>
 
+  <!-- Custom Cursor Elements -->
   <div id="cursor-dot"></div>
   <div id="cursor-ring"></div>
 
@@ -192,19 +194,33 @@
 
   <div id="scroll-container">
     <div class="story-text text-block" id="text-1">
-      <h1 class="split-target">The Architecture</h1>
-      <p class="split-target">Descending into the procedural depths of the digital environment.</p>
+      <h1 class="split-target">The Galactic Peak</h1>
+      <p class="split-target">A monolithic origin in a sea of lavender mist and starlight.</p>
     </div>
     <div class="story-text text-block" id="text-2" style="left: auto; right: 10vw; text-align: right;">
-      <h1 class="split-target">Fluid Memory</h1>
-      <p class="split-target">Artifacts of the past float through the synthetic atmosphere, bending as you pass.</p>
+      <h1 class="split-target">The Spiral Descent</h1>
+      <p class="split-target">Floating isles and golden swimmers glint in the sunset.</p>
     </div>
     <div class="story-text text-block" id="text-3">
-      <h1 class="split-target">The Deep</h1>
-      <p class="split-target">A seamless ocean of simulated mathematical noise reacting to physical presence.</p>
+      <h1 class="split-target">The Sacred Shell</h1>
+      <p class="split-target">Pink coral and a glowing pearl wait at the water's surface.</p>
+    </div>
+    <div class="story-text text-block" id="text-4" style="left: auto; right: 10vw; text-align: right;">
+      <h1 class="split-target">The Marine Garden</h1>
+      <p class="split-target">Dense aquatic life thrives where the light meets the water.</p>
+    </div>
+    <div class="story-text text-block" id="text-5">
+      <h1 class="split-target">Deep Reef</h1>
+      <p class="split-target">Dark obelisks and purple god rays pierce the abyssal depths.</p>
+    </div>
+    <div class="story-text text-block" id="text-6"
+      style="left: auto; right: 10vw; text-align: right; bottom: 5vh; top: auto; transform: none;">
+      <h1 class="split-target">The Golden Pyramid</h1>
+      <p class="split-target">A glowing geometric artifact resting on the quiet seafloor.</p>
     </div>
   </div>
 
+  <!-- Import Maps -->
   <script type="importmap">
   {
     "imports": {
@@ -221,6 +237,7 @@
     import * as THREE from 'three';
     import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
     import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+    import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
     import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
     import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
     import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
@@ -236,7 +253,8 @@
     // 0. Performance & Device Detection
     //=========================================
     const isMobile = window.innerWidth <= 768 || /Mobi|Android/i.test(navigator.userAgent);
-    const pixelRatio = Math.min(window.devicePixelRatio, 0.75); 
+    const pixelRatio = Math.min(window.devicePixelRatio, 0.75); // Hard cap pixel ratio
+    const useBloom = false; // Hardcode bloom to false to prevent crash
     const oceanSegmentCount = isMobile ? 64 : 128;
 
     //=========================================
@@ -338,10 +356,11 @@
     }
 
     const scene = new THREE.Scene();
-    scene.fog = new THREE.FogExp2(0x000000, 0.025);
+    // Start with a soft navy blue for the top of the scene
+    scene.fog = new THREE.FogExp2(0x050510, 0.025);
 
     const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 500);
-    camera.position.set(0, 20, 40);
+    camera.position.set(0, 20, 30);
     camera.rotation.set(-Math.PI / 8, 0, 0);
 
     const renderer = new THREE.WebGLRenderer({ antialias: false, alpha: false, powerPreference: "high-performance" });
@@ -360,8 +379,7 @@
 
     const bgUniforms = {
       uTime: { value: 0 },
-      uResolution: { value: new THREE.Vector2(window.innerWidth, window.innerHeight) },
-      uBgColor: { value: new THREE.Color(0x000000) } 
+      uResolution: { value: new THREE.Vector2(window.innerWidth, window.innerHeight) }
     };
 
     const bgMaterial = new THREE.ShaderMaterial({
@@ -370,13 +388,13 @@
             varying vec2 vUv;
             void main() {
                 vUv = uv;
+                // Full screen quad in clip space
                 gl_Position = vec4(position, 1.0);
             }
         `,
       fragmentShader: `
             uniform float uTime;
             uniform vec2 uResolution;
-            uniform vec3 uBgColor; 
             varying vec2 vUv;
 
             vec4 permute(vec4 x){return mod(((x*34.0)+1.0)*x, 289.0);}
@@ -444,7 +462,7 @@
                 for(int i = 0; i < 15; i++) {
                     vec3 p = ro + rd * t;
                     vec3 dp = p;
-                    dp.z -= uTime * 0.2; 
+                    dp.z -= uTime * 0.2; // Slow whispy motion
                     
                     float n = fbm(dp * 0.4);
                     float d = smoothstep(0.0, 1.0, -abs(p.z) + 1.2 + n * 2.5);
@@ -454,11 +472,11 @@
                         float alpha = (1.0 - density) * d * 0.15;
                         density += alpha;
                         
-                        vec3 purple = vec3(0.44, 0.0, 1.0);
-                        vec3 pink   = vec3(1.0, 0.0, 0.46);
-                        vec3 localCol = mix(purple, pink, smoothstep(-0.5, 0.5, n));
+                        vec3 lavender = vec3(0.647, 0.580, 0.976);
+                        vec3 peach    = vec3(1.0, 0.820, 0.663);
+                        vec3 localCol = mix(lavender, peach, smoothstep(-0.5, 0.5, n));
                         
-                        col += localCol * alpha * 0.5; 
+                        col += localCol * alpha * 0.5; // Slightly dimmer in background
                     }
                     
                     t += 0.2 + d * 0.1; 
@@ -474,7 +492,7 @@
                 vec3 ro = vec3(0.0, 0.0, 4.0);
                 vec3 rd = normalize(vec3(uv, -1.0));
                 
-                vec4 bgCol = vec4(uBgColor, 1.0); 
+                vec4 bgCol = vec4(0.02, 0.02, 0.06, 1.0); // Soft navy base
                 vec4 res = raymarch(ro, rd);
                 
                 vec3 finalCol = mix(bgCol.rgb, res.rgb, res.a);
@@ -488,175 +506,206 @@
 
     const bgMesh = new THREE.Mesh(bgGeometry, bgMaterial);
     bgMesh.frustumCulled = false;
-    bgMesh.renderOrder = -100;
+    bgMesh.renderOrder = -100; // Force to render absolutely first
     scene.add(bgMesh);
 
     //=========================================
-    // 5. Light setup (FIXED THE PITCH BLACK ABYSS)
+    // 5. Light setup
     //=========================================
-    // We boost the ambient light so we can see the shapes in the deep water
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6); 
+    // Soft ethereal lighting setup
+    const ambientLight = new THREE.AmbientLight(0xffe5ec, 0.6); // slight pink ambient
     scene.add(ambientLight);
 
-    const dirLight = new THREE.DirectionalLight(0x7000ff, 2.0);
+    const dirLight = new THREE.DirectionalLight(0xa594f9, 1.5); // Lavender directional
     dirLight.position.set(10, 20, 10);
     scene.add(dirLight);
 
-    const oceanLight = new THREE.PointLight(0x0033ff, 5.0, 100);
+    const oceanLight = new THREE.PointLight(0xffd1a9, 4.0, 100); // Peach point light
     oceanLight.position.set(0, -10, -50);
     scene.add(oceanLight);
 
-    const imageLight = new THREE.SpotLight(0xff0077, 10.0, 50, Math.PI / 4, 0.5, 1);
+    const imageLight = new THREE.SpotLight(0xf7a1c4, 8.0, 50, Math.PI / 4, 0.5, 1); // Soft pink spot
     imageLight.position.set(0, 5, 0);
     imageLight.target.position.set(0, -10, -20);
     scene.add(imageLight);
     scene.add(imageLight.target);
 
-    // FIXED: The Submarine Flashlight - Attached to the camera so it lights up the trench
-    const submarineLight = new THREE.PointLight(0xffffff, 3.0, 150);
-    camera.add(submarineLight);
-    scene.add(camera); // Must add camera to scene for attached lights to work
-
     //=========================================
-    // 6. Phase 1 & 2 & 3 Procedural 3D Assets 
+    // 6. Procedural 3D Assets: The 6-Scene Journey
     //=========================================
 
-    // Phase 1: The Peak (Rock & Jar)
-    const phase1Group = new THREE.Group();
-    scene.add(phase1Group);
+    const allScenesGroup = new THREE.Group();
+    scene.add(allScenesGroup);
 
-    const rockGeo = new THREE.IcosahedronGeometry(12, 4);
-    const rockMat = new THREE.MeshStandardMaterial({
-      color: 0x222222,
-      roughness: 0.9,
-      metalness: 0.1,
-      flatShading: true
-    });
+    // Common Materials
+    const stoneMat = new THREE.MeshStandardMaterial({ color: 0x888899, roughness: 0.9, metalness: 0.1, flatShading: true });
+    const fishMat = new THREE.MeshStandardMaterial({ color: 0xffb000, roughness: 0.3, metalness: 0.2, emissive: 0xff6600, emissiveIntensity: 0.2 });
+    const coralMat = new THREE.MeshStandardMaterial({ color: 0xff88aa, roughness: 0.6, metalness: 0.1 });
+    const glassMat = new THREE.MeshPhysicalMaterial({ color: 0xffffff, transmission: 1.0, opacity: 1.0, roughness: 0.1, ior: 1.5, thickness: 0.5 });
+    const darkStoneMat = new THREE.MeshStandardMaterial({ color: 0x1a1a24, roughness: 0.9, metalness: 0.3 });
+    const pyramidMat = new THREE.MeshStandardMaterial({ color: 0xffd700, roughness: 0.2, metalness: 0.8, emissive: 0x886600, emissiveIntensity: 0.5, wireframe: isMobile });
 
-    const pos = rockGeo.attributes.position;
+    // Scene 1: The Galactic Peak (Floating Pedestal)
+    const scene1Group = new THREE.Group();
+    const pedestalGeo = new THREE.CylinderGeometry(15, 10, 5, 8);
+
+    // Displace pedestal vertices slightly for craggy rock look
+    const pos = pedestalGeo.attributes.position;
     for (let i = 0; i < pos.count; i++) {
       let v = new THREE.Vector3(pos.getX(i), pos.getY(i), pos.getZ(i));
-      v.normalize().multiplyScalar(12 + Math.random() * 2);
+      if (v.y > 0) v.x += (Math.random() - 0.5) * 2;
       pos.setXYZ(i, v.x, v.y, v.z);
     }
-    rockGeo.computeVertexNormals();
+    pedestalGeo.computeVertexNormals();
 
-    const rock = new THREE.Mesh(rockGeo, rockMat);
-    phase1Group.add(rock);
+    const pedestal = new THREE.Mesh(pedestalGeo, stoneMat);
+    pedestal.position.set(0, -2, 0);
+    scene1Group.add(pedestal);
 
-    const jarGeo = new THREE.CylinderGeometry(2, 2, 6, 32);
-    const jarMat = new THREE.MeshPhysicalMaterial({
-      color: 0xffffff,
-      roughness: 0.1,
-      metalness: 0.9,
-      clearcoat: 1.0
-    });
-    const jar = new THREE.Mesh(jarGeo, jarMat);
-    jar.position.y = 15;
-    phase1Group.add(jar);
-
-    // Phase 2: The Surreal Surface (Floating Shapes)
-    const phase2Group = new THREE.Group();
-    scene.add(phase2Group);
-
-    const matPhase2 = new THREE.MeshStandardMaterial({ color: 0xff0077, roughness: 0.4, metalness: 0.8 });
-
-    const shape1 = new THREE.Mesh(new THREE.TorusGeometry(3, 1, 16, 100), matPhase2);
-    shape1.position.set(-15, -15, -30);
-    shape1.rotation.x = Math.PI / 2;
-    phase2Group.add(shape1);
-
-    const shape2 = new THREE.Mesh(new THREE.ConeGeometry(3, 8, 32), new THREE.MeshStandardMaterial({ color: 0x00aaff, roughness: 0.2, metalness: 0.5 }));
-    shape2.position.set(15, -18, -40);
-    shape2.rotation.z = Math.PI / 4;
-    phase2Group.add(shape2);
-
-    const shape3 = new THREE.Mesh(new THREE.CylinderGeometry(2, 2, 10, 32), new THREE.MeshStandardMaterial({ color: 0x7000ff, roughness: 0.5, metalness: 0.2 }));
-    shape3.position.set(0, -20, -50);
-    shape3.rotation.x = Math.PI / 4;
-    phase2Group.add(shape3);
-
-    const phase2Shapes = [shape1, shape2, shape3];
-
-    // Phase 3: The Deep Trench (Walls, Bubbles, UI Spheres)
-    const phase3Group = new THREE.Group();
-    scene.add(phase3Group);
-
-    // Trench Walls (Extended so they wrap around the camera)
-    const wallGeo = new THREE.PlaneGeometry(100, 300, 32, 64);
-    const wallMat = new THREE.MeshStandardMaterial({ color: 0x0a0a0a, roughness: 1.0, wireframe: isMobile });
-
-    const wallPos = wallGeo.attributes.position;
-    for (let i = 0; i < wallPos.count; i++) {
-      wallPos.setZ(i, Math.random() * 8);
+    // Floating stair slabs
+    const stairGeo = new THREE.BoxGeometry(8, 0.4, 3);
+    for (let i = 0; i < 8; i++) {
+      const step = new THREE.Mesh(stairGeo, stoneMat);
+      step.position.set(Math.sin(i) * 5, -2 + i * -1.5, Math.cos(i) * 5);
+      step.rotation.y = -i * 0.2;
+      scene1Group.add(step);
     }
-    wallGeo.computeVertexNormals();
+    allScenesGroup.add(scene1Group);
 
-    const leftWall = new THREE.Mesh(wallGeo, wallMat);
-    leftWall.position.set(-25, -100, -50);
-    leftWall.rotation.y = Math.PI / 2;
-    phase3Group.add(leftWall);
+    // Scene 2: The Spiral Descent & Floating Isles
+    const scene2Group = new THREE.Group();
+    scene2Group.position.set(0, -35, 0);
 
-    const rightWall = new THREE.Mesh(wallGeo, wallMat);
-    rightWall.position.set(25, -100, -50);
-    rightWall.rotation.y = -Math.PI / 2;
-    phase3Group.add(rightWall);
-
-    // Bubble Particles
-    const bubbleGeo = new THREE.BufferGeometry();
-    const bubbleCount = 200;
-    const bubblePos = new Float32Array(bubbleCount * 3);
-    for (let i = 0; i < bubbleCount * 3; i++) {
-      bubblePos[i] = (Math.random() - 0.5) * 40; 
+    const floatingRockGeo = new THREE.IcosahedronGeometry(4, 1);
+    const rpos = floatingRockGeo.attributes.position;
+    for (let i = 0; i < rpos.count; i++) {
+      rpos.setXYZ(i, rpos.getX(i) * (1 + Math.random() * 0.2), rpos.getY(i) * (1 + Math.random() * 0.2), rpos.getZ(i) * (1 + Math.random() * 0.2));
     }
-    bubbleGeo.setAttribute('position', new THREE.BufferAttribute(bubblePos, 3));
-    const bubbleMat = new THREE.PointsMaterial({ color: 0xaaaaff, size: 0.5, transparent: true, opacity: 0.6 });
-    const bubbles = new THREE.Points(bubbleGeo, bubbleMat);
-    bubbles.position.set(0, -100, -80);
-    phase3Group.add(bubbles);
+    floatingRockGeo.computeVertexNormals();
 
-    // 3 Refractive Glass UI Spheres
-    const glassMat = new THREE.MeshPhysicalMaterial({
-      color: 0xffffff,
-      transmission: 1.0,
-      opacity: 1.0,
-      metalness: 0.1,
-      roughness: 0.1,
-      ior: 1.5,
-      thickness: 2.0, // Increased thickness for better light bending
-      specularIntensity: 1.0
-    });
-
-    const sphereGeo = new THREE.SphereGeometry(4, 32, 32);
-    const uiSpheres = [];
-
-    for (let i = 0; i < 3; i++) {
-      const sphere = new THREE.Mesh(sphereGeo, glassMat);
-      // Spheres are placed at Z: -80 and dropping down the Y axis
-      sphere.position.set((i - 1) * 12, -70 - (i * 30), -80);
-
-      const innerGeo = i === 0 ? new THREE.BoxGeometry(2, 2, 2) : i === 1 ? new THREE.TorusGeometry(1.5, 0.4, 16, 32) : new THREE.TetrahedronGeometry(2);
-      const innerMat = new THREE.MeshBasicMaterial({ color: i === 0 ? 0xff0077 : i === 1 ? 0x00aaff : 0x7000ff });
-      const innerShape = new THREE.Mesh(innerGeo, innerMat);
-      sphere.add(innerShape);
-
-      phase3Group.add(sphere);
-      uiSpheres.push(sphere);
+    for (let i = 0; i < 7; i++) {
+      const rock = new THREE.Mesh(floatingRockGeo, stoneMat);
+      rock.position.set((Math.random() - 0.5) * 40, (Math.random() - 0.5) * 20, (Math.random() - 0.5) * 20);
+      scene2Group.add(rock);
     }
 
-    //=========================================
-    // 7. Asset Compression Pipeline (DRACO & KTX2)
-    //=========================================
-    const dracoLoader = new DRACOLoader();
-    dracoLoader.setDecoderPath('https://unpkg.com/three@0.160.0/examples/jsm/libs/draco/gltf/');
+    // Greek Pillar
+    const pillarGeo = new THREE.CylinderGeometry(1.5, 1.5, 30, 16);
+    const pillar = new THREE.Mesh(pillarGeo, stoneMat);
+    pillar.position.set(-15, 0, -10);
+    pillar.rotation.x = Math.PI / 8;
+    scene2Group.add(pillar);
 
-    const ktx2Loader = new KTX2Loader();
-    ktx2Loader.setTranscoderPath('https://unpkg.com/three@0.160.0/examples/jsm/libs/basis/');
-    ktx2Loader.detectSupport(renderer);
+    const pillar2 = new THREE.Mesh(pillarGeo, stoneMat);
+    pillar2.position.set(20, -10, -15);
+    pillar2.rotation.z = -Math.PI / 6;
+    scene2Group.add(pillar2);
 
-    const gltfLoader = new GLTFLoader();
-    gltfLoader.setDRACOLoader(dracoLoader);
-    gltfLoader.setKTX2Loader(ktx2Loader);
+    // Procedural Fish Array
+    const fishies = [];
+    const fishGeo = new THREE.ConeGeometry(0.5, 2, 4);
+    fishGeo.rotateX(Math.PI / 2);
+    for (let i = 0; i < 15; i++) {
+      const fish = new THREE.Mesh(fishGeo, fishMat);
+      fish.position.set((Math.random() - 0.5) * 50, (Math.random() - 0.5) * 30, (Math.random() - 0.5) * 30);
+      scene2Group.add(fish);
+      fishies.push({ mesh: fish, offset: Math.random() * Math.PI * 2, speed: 0.02 + Math.random() * 0.02 });
+    }
+    allScenesGroup.add(scene2Group);
+
+    // Scene 3: The Sacred Shell & Sea Moss
+    const scene3Group = new THREE.Group();
+    scene3Group.position.set(0, -90, -20);
+
+    const shellGeo = new THREE.SphereGeometry(6, 16, 16, 0, Math.PI, 0, Math.PI / 2);
+    const shellBottom = new THREE.Mesh(shellGeo, stoneMat);
+    shellBottom.rotation.x = -Math.PI / 2;
+    const shellTop = new THREE.Mesh(shellGeo, stoneMat);
+    shellTop.rotation.x = -Math.PI / 4;
+    shellTop.position.set(0, 1, -5);
+
+    const pearlGeo = new THREE.SphereGeometry(2, 32, 32);
+    const pearl = new THREE.Mesh(pearlGeo, new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xffffff, emissiveIntensity: 0.8, roughness: 0 }));
+    pearl.position.set(0, 2, 0);
+
+    // Sea moss / coral
+    const coralGeo = new THREE.TorusKnotGeometry(4, 1.5, 64, 16);
+    const coral1 = new THREE.Mesh(coralGeo, coralMat);
+    coral1.position.set(-15, 0, 0);
+    const coral2 = new THREE.Mesh(coralGeo, coralMat);
+    coral2.position.set(15, 2, -10);
+
+    scene3Group.add(shellBottom, shellTop, pearl, coral1, coral2);
+    allScenesGroup.add(scene3Group);
+
+    // Scene 4: The Marine Garden
+    const scene4Group = new THREE.Group();
+    scene4Group.position.set(0, -150, -40);
+
+    const weedGeo = new THREE.CylinderGeometry(0.2, 0.2, 20, 5);
+    const weedMat = new THREE.MeshStandardMaterial({ color: 0x228855, roughness: 0.8 });
+    const weeds = [];
+    for (let i = 0; i < 40; i++) {
+      const weed = new THREE.Mesh(weedGeo, weedMat);
+      weed.position.set((Math.random() - 0.5) * 80, -5, (Math.random() - 0.5) * 40);
+      scene4Group.add(weed);
+      weeds.push({ mesh: weed, phase: Math.random() * Math.PI * 2 });
+    }
+    allScenesGroup.add(scene4Group);
+
+    // Scene 5: Deep Underwater Reef
+    const scene5Group = new THREE.Group();
+    scene5Group.position.set(0, -230, -60);
+
+    const obeliskGeo = new THREE.BoxGeometry(4, 60, 4);
+    const obelisk1 = new THREE.Mesh(obeliskGeo, darkStoneMat);
+    obelisk1.position.set(-25, 0, -10);
+    const obelisk2 = new THREE.Mesh(obeliskGeo, darkStoneMat);
+    obelisk2.position.set(30, -5, -20);
+
+    const massiveCoralGeo = new THREE.DodecahedronGeometry(12, 1);
+    const massiveCoral = new THREE.Mesh(massiveCoralGeo, coralMat);
+    massiveCoral.position.set(0, -10, -5);
+
+    scene5Group.add(obelisk1, obelisk2, massiveCoral);
+
+    // Glass Bubbles
+    const bubblesArr = [];
+    const bubbleGeo = new THREE.SphereGeometry(2, 16, 16);
+    for (let i = 0; i < 20; i++) {
+      const b = new THREE.Mesh(bubbleGeo, glassMat);
+      b.position.set((Math.random() - 0.5) * 50, (Math.random() - 0.5) * 40, (Math.random() - 0.5) * 40);
+      scene5Group.add(b);
+      bubblesArr.push(b);
+    }
+    allScenesGroup.add(scene5Group);
+
+    // Scene 6: The Golden Pyramid
+    const scene6Group = new THREE.Group();
+    scene6Group.position.set(0, -320, -80);
+
+    const pyramidMeshGeo = new THREE.ConeGeometry(30, 40, 4);
+    const mainPyramid = new THREE.Mesh(pyramidMeshGeo, pyramidMat);
+    scene6Group.add(mainPyramid);
+
+    const floorGeo = new THREE.PlaneGeometry(300, 300);
+    const floorMat = new THREE.MeshStandardMaterial({ color: 0x0a0a10, roughness: 1.0 });
+    const floor = new THREE.Mesh(floorGeo, floorMat);
+    floor.rotation.x = -Math.PI / 2;
+    floor.position.y = -20;
+    scene6Group.add(floor);
+
+    allScenesGroup.add(scene6Group);
+
+    // Compression check bypass
+    function hideLoading() {
+      const loaderUi = document.getElementById('loading');
+      if (loaderUi) {
+        loaderUi.style.opacity = 0;
+        setTimeout(() => loaderUi.remove(), 1000);
+      }
+    }
+    setTimeout(hideLoading, 500);
 
     function hideLoading() {
       const loaderUi = document.getElementById('loading');
@@ -732,7 +781,7 @@
 
     const oceanUniforms = {
       uHeightmap: { value: null },
-      uColorDeep: { value: new THREE.Color('#000000') }, 
+      uColorDeep: { value: new THREE.Color('#000000') }, // Ensure it blends into fog
       uColorShallow: { value: new THREE.Color('#3300aa') },
       uTime: { value: 0 }
     };
@@ -796,6 +845,7 @@
     //=========================================
     // 9. Post-Processing Context
     //=========================================
+    // God Rays / Underwater Light Post-Processing Pass (Simplified additive blend)
     const godRayUniforms = {
       tDiffuse: { value: null },
       uTime: { value: 0 },
@@ -819,18 +869,24 @@
             void main() {
                 vec4 texel = texture2D(tDiffuse, vUv);
                 
+                // Procedural vertical light rays
                 float ray = sin(vUv.x * 20.0 + uTime) * sin(vUv.x * 10.0 - uTime * 0.5) * 0.5 + 0.5;
-                float fade = smoothstep(0.0, 1.0, vUv.y); 
+                float fade = smoothstep(0.0, 1.0, vUv.y); // Fade out at bottom
                 
-                vec3 finalColor = texel.rgb + uColor * ray * fade * uIntensity;
+                // Subtle film grain
+                float grain = (fract(sin(dot(vUv + uTime, vec2(12.9898, 78.233))) * 43758.5453) - 0.5) * 0.05;
+                
+                vec3 finalColor = texel.rgb + uColor * ray * fade * uIntensity + grain;
                 gl_FragColor = vec4(finalColor, texel.a);
             }
         `
     });
 
-    const composer = new EffectComposer(renderer);
+    // Custom Composer 
+    composer = new EffectComposer(renderer);
     composer.addPass(new RenderPass(scene, camera));
-    composer.addPass(godRayPass); 
+    composer.addPass(godRayPass); // Add the God Rays pass
+
 
     //=========================================
     // 10. GSAP ScrollTrigger Master Journey 
@@ -844,21 +900,30 @@
       }
     });
 
+    // Color Targets for Phase 3 Transition
     const colorTarget = { fogColor: new THREE.Color(0x000000), bgColor: new THREE.Color(0x000000) };
 
+    // Initial State
+    camera.position.set(0, 20, 40);
+    camera.rotation.set(-Math.PI / 8, 0, 0);
+
     // --- PHASE 1: The Peak (0% - 30%) ---
+    // Orbit the rock structure slowly
     tl.to(camera.position, { x: 20, y: 15, z: 20, ease: "power1.inOut" }, 0.0);
     tl.to(camera.rotation, { y: Math.PI / 4, ease: "power1.inOut" }, 0.0);
+
+    // Plunge down through the rock
     tl.to(camera.position, { x: 0, y: -5, z: -10, ease: "power2.in" }, 0.15);
     tl.to(camera.rotation, { x: 0, y: 0, ease: "power2.in" }, 0.15);
 
     // --- PHASE 2: The Surreal Surface (30% - 60%) ---
+    // Emerge above the FBO water
     tl.to(camera.position, { x: 0, y: -5, z: -40, ease: "none" }, 0.3);
 
     // --- PHASE 3: The Deep Trench (60% - 100%) ---
-    // FIXED: Dropped camera to Z: -50 so we sit right in front of the spheres instead of crashing through them!
-    tl.to(camera.position, { x: 0, y: -140, z: -50, ease: "power2.inOut" }, 0.6);
-    tl.to(camera.rotation, { x: Math.PI / 8, ease: "power1.inOut" }, 0.6);
+    // Break through water surface and go underwater
+    tl.to(camera.position, { x: 0, y: -180, z: -80, ease: "power2.inOut" }, 0.6);
+    tl.to(camera.rotation, { x: Math.PI / 6, ease: "power1.inOut" }, 0.6);
 
     // Animate Colors (Fog and BG) to deep purple
     tl.to(colorTarget.fogColor, {
@@ -867,29 +932,37 @@
     }, 0.6);
     tl.to(colorTarget.bgColor, {
       r: 0.05, g: 0.0, b: 0.15,
+      onUpdate: () => bgUniforms.uTime.value += 0, // Just a placeholder onUpdate trigger
       ease: "power1.inOut"
     }, 0.6);
 
+    // Fade in God Rays
     tl.to(godRayUniforms.uIntensity, { value: 1.0, ease: "power1.inOut" }, 0.6);
 
-    // Staggered Text
+    // Staggered Character Animation Timings - UI Updates
     gsap.to(textBlocksChunks[0], {
       y: '0%', duration: 1, stagger: 0.02, ease: 'power3.out',
-      scrollTrigger: { trigger: "#scroll-container", start: "1% top", end: "10% top", scrub: 1 }
+      scrollTrigger: {
+        trigger: "#scroll-container", start: "1% top", end: "10% top", scrub: 1
+      }
     });
     tl.to(document.getElementById('text-1'), { opacity: 0, duration: 0.1 }, 0.2);
 
     document.getElementById('text-2').style.opacity = 1;
     gsap.fromTo(textBlocksChunks[1], { y: '110%' }, {
       y: '0%', duration: 1, stagger: 0.02, ease: 'power3.out',
-      scrollTrigger: { trigger: "#scroll-container", start: "30% top", end: "40% top", scrub: 1 }
+      scrollTrigger: {
+        trigger: "#scroll-container", start: "30% top", end: "40% top", scrub: 1
+      }
     });
     tl.to(document.getElementById('text-2'), { opacity: 0, duration: 0.1 }, 0.6);
 
     document.getElementById('text-3').style.opacity = 1;
     gsap.fromTo(textBlocksChunks[2], { y: '110%' }, {
       y: '0%', duration: 1, stagger: 0.02, ease: 'power3.out',
-      scrollTrigger: { trigger: "#scroll-container", start: "70% top", end: "85% top", scrub: 1 }
+      scrollTrigger: {
+        trigger: "#scroll-container", start: "70% top", end: "85% top", scrub: 1
+      }
     });
 
     //=========================================
@@ -899,18 +972,26 @@
       camera.aspect = window.innerWidth / window.innerHeight;
       camera.updateProjectionMatrix();
       renderer.setSize(window.innerWidth, window.innerHeight);
-      composer.setSize(window.innerWidth, window.innerHeight); 
+      if (useBloom) composer.setSize(window.innerWidth, window.innerHeight);
     });
 
     const clock = new THREE.Clock();
+    let prevScrollY = window.scrollY;
+    let currentVelocity = 0;
 
     function animate() {
       requestAnimationFrame(animate);
       const elapsedTime = clock.getElapsedTime();
 
-      // Cloud Logic
+      // Bg Volumetric Clouds Context
       bgUniforms.uTime.value = elapsedTime;
-      bgUniforms.uBgColor.value.copy(colorTarget.bgColor); 
+
+      // Scroll Velocity Calculation for WebGL Planes
+      const currentScrollY = window.scrollY;
+      const targetVelocity = (currentScrollY - prevScrollY) * 0.1;
+      prevScrollY = currentScrollY;
+      currentVelocity = THREE.MathUtils.lerp(currentVelocity, targetVelocity, 0.1);
+      const cappedVelocity = Math.max(-1.5, Math.min(1.5, currentVelocity));
 
       // Phase 2 Shapes Animation (Bobbing)
       phase2Shapes.forEach((shape, i) => {
@@ -919,37 +1000,17 @@
         shape.rotation.y += 0.005;
       });
 
-      // 1. Physics Raycasting
-      if (camera.position.z < -20 && !isMobile) {
-        raycaster.setFromCamera(mouseContext, camera);
-        const intersects = raycaster.intersectObject(interactionPlane);
-        if (intersects.length > 0) {
-          heightmapVariable.material.uniforms.mousePos.value.set(intersects[0].uv.x, intersects[0].uv.y);
-        } else {
-          heightmapVariable.material.uniforms.mousePos.value.set(-1, -1);
-        }
-      } else {
-        heightmapVariable.material.uniforms.mousePos.value.set(-1, -1);
-      }
-
-      // 2. Compute FBO Physics
-      gpuCompute.compute();
-
-      // 3. Feed result back to Ocean Shader
-      oceanUniforms.uHeightmap.value = gpuCompute.getCurrentRenderTarget(heightmapVariable).texture;
-      oceanUniforms.uTime.value = elapsedTime;
-
       // Phase 3 Under Water Animations
       const bubblePositions = bubbles.geometry.attributes.position.array;
       for (let i = 1; i < bubbleCount * 3; i += 3) {
-        bubblePositions[i] += 0.1; 
-        if (bubblePositions[i] > 100) bubblePositions[i] = -100; 
+        bubblePositions[i] += 0.1; // move up
+        if (bubblePositions[i] > 100) bubblePositions[i] = -100; // reset
       }
       bubbles.geometry.attributes.position.needsUpdate = true;
 
       uiSpheres.forEach((sphere, i) => {
         sphere.rotation.y += 0.01;
-        sphere.children[0].rotation.x += 0.02; 
+        sphere.children[0].rotation.x += 0.02; // Rotate inner shape
         sphere.children[0].rotation.y += 0.02;
       });
 
@@ -958,7 +1019,12 @@
         godRayUniforms.uTime.value = elapsedTime;
       }
 
-      // 5. Render Scene through Composer
+      // Background Color Transition handling
+      const currentBg = new THREE.Color(0, 0, 0);
+      currentBg.lerp(colorTarget.bgColor, 1.0);
+      bgMaterial.uniforms.uTime.value = elapsedTime;
+
+      // 5. Render Scene
       composer.render();
     }
 
