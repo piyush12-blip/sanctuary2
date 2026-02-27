@@ -1,190 +1,62 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Organimo R&D - The Descent (Awwwards Edition)</title>
-  <!-- Preload fonts -->
+  <title>Organimo R&D - The Descent</title>
+  
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link
-    href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@1,600&family=Space+Grotesk:wght@400;700&display=swap"
-    rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@1,600&family=Space+Grotesk:wght@400;700&display=swap" rel="stylesheet">
+  
   <style>
-    body,
-    html {
-      margin: 0;
-      padding: 0;
-      background: transparent;
-      color: #ffffff;
-      font-family: 'Space Grotesk', sans-serif;
-      overflow-x: hidden;
-      width: 100%;
-      cursor: none;
+    body, html {
+      margin: 0; padding: 0; background: #050510; color: #ffffff;
+      font-family: 'Space Grotesk', sans-serif; overflow-x: hidden; width: 100%; cursor: none;
     }
 
-    #cursor-dot,
-    #cursor-ring {
-      position: fixed;
-      top: 0;
-      left: 0;
-      pointer-events: none;
-      z-index: 10000;
-      transform: translate(-50%, -50%);
-      border-radius: 50%;
-      will-change: transform, width, height;
+    /* Custom Cursor */
+    #cursor-dot, #cursor-ring {
+      position: fixed; top: 0; left: 0; pointer-events: none; z-index: 10000;
+      transform: translate(-50%, -50%); border-radius: 50%; will-change: transform;
     }
+    #cursor-dot { width: 6px; height: 6px; background-color: #fff; mix-blend-mode: exclusion; }
+    #cursor-ring { width: 40px; height: 40px; border: 1px solid rgba(255, 255, 255, 0.4); }
 
-    #cursor-dot {
-      width: 6px;
-      height: 6px;
-      background-color: #fff;
-      mix-blend-mode: exclusion;
-    }
-
-    #cursor-ring {
-      width: 40px;
-      height: 40px;
-      border: 1px solid rgba(255, 255, 255, 0.4);
-      transition: border-color 0.3s ease;
-    }
-
-    .magnetic {
-      display: inline-block;
-    }
-
-    canvas {
-      display: block;
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh;
-      z-index: -1;
-    }
+    canvas { display: block; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: -1; }
 
     #header {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      padding: 2.5rem;
-      display: flex;
-      justify-content: space-between;
-      box-sizing: border-box;
-      mix-blend-mode: exclusion;
-      z-index: 100;
-      pointer-events: none;
+      position: fixed; top: 0; left: 0; width: 100%; padding: 2.5rem;
+      display: flex; justify-content: space-between; box-sizing: border-box;
+      mix-blend-mode: exclusion; z-index: 100; pointer-events: none;
     }
+    .logo { font-family: 'Playfair Display', serif; font-style: italic; font-size: 1.8rem; pointer-events: auto; }
+    .nav { font-size: 1rem; letter-spacing: 4px; text-transform: uppercase; pointer-events: auto; }
 
-    .logo {
-      font-family: 'Playfair Display', serif;
-      font-style: italic;
-      font-size: 1.8rem;
-      letter-spacing: 1px;
-      pointer-events: auto;
-      cursor: none;
-    }
-
-    .nav {
-      font-size: 1rem;
-      letter-spacing: 4px;
-      text-transform: uppercase;
-      pointer-events: auto;
-      cursor: none;
-    }
-
-    #scroll-container {
-      height: 1200vh;
-      width: 100vw;
-      position: relative;
-    }
+    #scroll-container { height: 1200vh; width: 100vw; position: relative; }
 
     .story-text {
-      position: fixed;
-      left: 10vw;
-      top: 50vh;
-      transform: translateY(-50%);
-      max-width: 500px;
-      pointer-events: none;
-      mix-blend-mode: exclusion;
+      position: fixed; left: 10vw; top: 50vh; transform: translateY(-50%);
+      max-width: 500px; pointer-events: none; mix-blend-mode: exclusion; opacity: 0;
     }
+    .split-word { display: inline-block; overflow: hidden; vertical-align: top; }
+    .split-char { display: inline-block; transform: translateY(110%); will-change: transform; }
 
-    .split-word {
-      display: inline-block;
-      overflow: hidden;
-      vertical-align: top;
-    }
-
-    .split-char {
-      display: inline-block;
-      transform: translateY(110%);
-      will-change: transform;
-    }
-
-    h1 {
-      font-family: 'Playfair Display', serif;
-      font-size: 4rem;
-      font-style: italic;
-      margin: 0 0 1rem 0;
-      letter-spacing: 1px;
-      font-weight: 600;
-      line-height: 1.1;
-    }
-
-    p {
-      font-size: 1.2rem;
-      line-height: 1.6;
-      margin: 0;
-      opacity: 0.8;
-      font-weight: 400;
-    }
+    h1 { font-family: 'Playfair Display', serif; font-size: 4rem; font-style: italic; margin: 0 0 1rem 0; line-height: 1.1; }
+    p { font-size: 1.2rem; line-height: 1.6; opacity: 0.8; }
 
     #loading {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh;
-      background: #000;
-      z-index: 999;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      font-family: 'Space Grotesk', sans-serif;
-      font-size: 1.5rem;
-      letter-spacing: 4px;
-      transition: opacity 1s ease;
-      cursor: none;
-    }
-
-    @media (max-width: 768px) {
-      h1 {
-        font-size: 2.5rem;
-      }
-
-      .story-text {
-        left: 5vw;
-        right: 5vw;
-        max-width: none;
-        text-align: center !important;
-      }
-
-      #cursor-dot,
-      #cursor-ring {
-        display: none;
-      }
+      position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+      background: #000; z-index: 999; display: flex; justify-content: center;
+      align-items: center; letter-spacing: 4px; transition: opacity 1s ease;
     }
   </style>
 </head>
-
 <body>
 
-  <!-- Custom Cursor Elements -->
   <div id="cursor-dot"></div>
   <div id="cursor-ring"></div>
-
   <div id="loading">LOADING EXPERIENCE...</div>
 
   <header id="header">
@@ -193,7 +65,7 @@
   </header>
 
   <div id="scroll-container">
-    <div class="story-text text-block" id="text-1">
+    <div class="story-text text-block" id="text-1" style="opacity: 1;">
       <h1 class="split-target">The Galactic Peak</h1>
       <p class="split-target">A monolithic origin in a sea of lavender mist and starlight.</p>
     </div>
@@ -205,22 +77,8 @@
       <h1 class="split-target">The Sacred Shell</h1>
       <p class="split-target">Pink coral and a glowing pearl wait at the water's surface.</p>
     </div>
-    <div class="story-text text-block" id="text-4" style="left: auto; right: 10vw; text-align: right;">
-      <h1 class="split-target">The Marine Garden</h1>
-      <p class="split-target">Dense aquatic life thrives where the light meets the water.</p>
-    </div>
-    <div class="story-text text-block" id="text-5">
-      <h1 class="split-target">Deep Reef</h1>
-      <p class="split-target">Dark obelisks and purple god rays pierce the abyssal depths.</p>
-    </div>
-    <div class="story-text text-block" id="text-6"
-      style="left: auto; right: 10vw; text-align: right; bottom: 5vh; top: auto; transform: none;">
-      <h1 class="split-target">The Golden Pyramid</h1>
-      <p class="split-target">A glowing geometric artifact resting on the quiet seafloor.</p>
-    </div>
   </div>
 
-  <!-- Import Maps -->
   <script type="importmap">
   {
     "imports": {
@@ -228,38 +86,37 @@
       "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/",
       "gsap": "https://unpkg.com/gsap@3.12.5/index.js",
       "gsap/ScrollTrigger": "https://unpkg.com/gsap@3.12.5/ScrollTrigger.js",
-      "@studio-freight/lenis": "https://unpkg.com/@studio-freight/lenis@1.0.42/dist/lenis.mjs"
+      "lenis": "https://unpkg.com/@studio-freight/lenis@1.0.42/dist/lenis.mjs"
     }
   }
-</script>
+  </script>
 
   <script type="module">
     import * as THREE from 'three';
     import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
     import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
-    import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
     import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
     import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-    import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
-    import { KTX2Loader } from 'three/addons/loaders/KTX2Loader.js';
-    import { GPUComputationRenderer } from 'three/addons/misc/GPUComputationRenderer.js';
     import gsap from 'gsap';
     import ScrollTrigger from 'gsap/ScrollTrigger';
-    import Lenis from '@studio-freight/lenis';
+    import Lenis from 'lenis';
 
     gsap.registerPlugin(ScrollTrigger);
 
-    //=========================================
-    // 0. Performance & Device Detection
-    //=========================================
-    const isMobile = window.innerWidth <= 768 || /Mobi|Android/i.test(navigator.userAgent);
-    const pixelRatio = Math.min(window.devicePixelRatio, 0.75); // Hard cap pixel ratio
-    const useBloom = false; // Hardcode bloom to false to prevent crash
-    const oceanSegmentCount = isMobile ? 64 : 128;
+    // 0. Setup
+    const isMobile = window.innerWidth <= 768;
+    const pixelRatio = Math.min(window.devicePixelRatio, 2);
+    const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(pixelRatio);
+    document.body.appendChild(renderer.domElement);
 
-    //=========================================
-    // 1. Text Splitting Utility (Typography)
-    //=========================================
+    const scene = new THREE.Scene();
+    scene.fog = new THREE.FogExp2(0x050510, 0.02);
+    const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera.position.set(0, 20, 40);
+
+    // 1. Text Splitting
     function splitText(element) {
       const text = element.innerText;
       element.innerHTML = '';
@@ -267,16 +124,15 @@
       words.forEach((word, wordIndex) => {
         const wordSpan = document.createElement('span');
         wordSpan.classList.add('split-word');
-        word.split('').forEach((char) => {
+        word.split('').forEach(char => {
           const charSpan = document.createElement('span');
           charSpan.classList.add('split-char');
-          charSpan.innerHTML = char === ' ' ? '&nbsp;' : char;
+          charSpan.innerHTML = char;
           wordSpan.appendChild(charSpan);
         });
         element.appendChild(wordSpan);
         if (wordIndex < words.length - 1) {
           const space = document.createElement('span');
-          space.classList.add('split-word');
           space.innerHTML = '&nbsp;';
           element.appendChild(space);
         }
@@ -288,780 +144,90 @@
     document.querySelectorAll('.text-block').forEach(block => {
       const targets = block.querySelectorAll('.split-target');
       let allChars = [];
-      targets.forEach(t => {
-        const chars = splitText(t);
-        allChars = [...allChars, ...chars];
-      });
+      targets.forEach(t => allChars = [...allChars, ...splitText(t)]);
       textBlocksChunks.push(allChars);
     });
 
-    //=========================================
-    // 2. Custom Magnetic Cursor
-    //=========================================
-    const cursorDot = document.getElementById('cursor-dot');
-    const cursorRing = document.getElementById('cursor-ring');
-    let mouse = { x: window.innerWidth / 2, y: window.innerHeight / 2, vX: 0, vY: 0 };
-    let cPos = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
-    let isHovering = false;
-    let lastMouse = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
-
-    if (!isMobile) {
-      window.addEventListener('mousemove', (e) => {
-        mouse.x = e.clientX;
-        mouse.y = e.clientY;
-      });
-
-      document.querySelectorAll('.magnetic').forEach(el => {
-        el.addEventListener('mouseenter', () => { isHovering = true; cursorRing.style.borderColor = '#ff0077'; });
-        el.addEventListener('mouseleave', () => { isHovering = false; cursorRing.style.borderColor = 'rgba(255,255,255,0.4)'; });
-      });
-    }
-
-    //=========================================
-    // 3. Core Three.js Setups
-    //=========================================
-    const lenis = new Lenis({
-      smoothWheel: true,
-      duration: 1.5,
-      easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t))
-    });
-
-    lenis.on('scroll', ScrollTrigger.update);
-    gsap.ticker.add((time) => {
-      lenis.raf(time * 1000);
-      updateCursor();
-    });
-    gsap.ticker.lagSmoothing(0);
-
-    function updateCursor() {
-      if (isMobile) return;
-
-      mouse.vX = mouse.x - lastMouse.x;
-      mouse.vY = mouse.y - lastMouse.y;
-      lastMouse.x = mouse.x;
-      lastMouse.y = mouse.y;
-
-      const velocity = Math.sqrt(mouse.vX * mouse.vX + mouse.vY * mouse.vY);
-      const stretch = Math.min(velocity * 0.5, 20);
-      const angle = Math.atan2(mouse.vY, mouse.vX) * 180 / Math.PI;
-
-      cPos.x += (mouse.x - cPos.x) * 0.15;
-      cPos.y += (mouse.y - cPos.y) * 0.15;
-
-      cursorDot.style.transform = `translate(-50%, -50%) translate(${mouse.x}px, ${mouse.y}px)`;
-      let ringSize = isHovering ? 60 : 40;
-      cursorRing.style.width = `${ringSize + stretch}px`;
-      cursorRing.style.height = `${ringSize - stretch * 0.2}px`;
-      cursorRing.style.transform = `translate(-50%, -50%) translate(${cPos.x}px, ${cPos.y}px) rotate(${angle}deg)`;
-    }
-
-    const scene = new THREE.Scene();
-    // Start with a soft navy blue for the top of the scene
-    scene.fog = new THREE.FogExp2(0x050510, 0.025);
-
-    const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 500);
-    camera.position.set(0, 20, 30);
-    camera.rotation.set(-Math.PI / 8, 0, 0);
-
-    const renderer = new THREE.WebGLRenderer({ antialias: false, alpha: false, powerPreference: "high-performance" });
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setPixelRatio(pixelRatio);
-    document.body.appendChild(renderer.domElement);
-
-    //=========================================
-    // 4. Background: Volumetric Raymarched Clouds (FBM)
-    //=========================================
-    const bgGeometry = new THREE.BufferGeometry();
-    const bgVertices = new Float32Array([-1.0, -1.0, 0.0, 3.0, -1.0, 0.0, -1.0, 3.0, 0.0]);
-    const bgUvs = new Float32Array([0.0, 0.0, 2.0, 0.0, 0.0, 2.0]);
-    bgGeometry.setAttribute('position', new THREE.BufferAttribute(bgVertices, 3));
-    bgGeometry.setAttribute('uv', new THREE.BufferAttribute(bgUvs, 2));
-
-    const bgUniforms = {
-      uTime: { value: 0 },
-      uResolution: { value: new THREE.Vector2(window.innerWidth, window.innerHeight) }
-    };
-
-    const bgMaterial = new THREE.ShaderMaterial({
-      uniforms: bgUniforms,
-      vertexShader: `
-            varying vec2 vUv;
-            void main() {
-                vUv = uv;
-                // Full screen quad in clip space
-                gl_Position = vec4(position, 1.0);
-            }
-        `,
-      fragmentShader: `
-            uniform float uTime;
-            uniform vec2 uResolution;
-            varying vec2 vUv;
-
-            vec4 permute(vec4 x){return mod(((x*34.0)+1.0)*x, 289.0);}
-            vec4 taylorInvSqrt(vec4 r){return 1.79284291400159 - 0.85373472095314 * r;}
-            float snoise(vec3 v){ 
-              const vec2  C = vec2(1.0/6.0, 1.0/3.0) ;
-              const vec4  D = vec4(0.0, 0.5, 1.0, 2.0);
-              vec3 i  = floor(v + dot(v, C.yyy) );
-              vec3 x0 = v - i + dot(i, C.xxx) ;
-              vec3 g = step(x0.yzx, x0.xyz);
-              vec3 l = 1.0 - g;
-              vec3 i1 = min( g.xyz, l.zxy );
-              vec3 i2 = max( g.xyz, l.zxy );
-              vec3 x1 = x0 - i1 + 1.0 * C.xxx;
-              vec3 x2 = x0 - i2 + 2.0 * C.xxx;
-              vec3 x3 = x0 - 1.0 + 3.0 * C.xxx;
-              i = mod(i, 289.0 ); 
-              vec4 p = permute( permute( permute( 
-                         i.z + vec4(0.0, i1.z, i2.z, 1.0 ))
-                       + i.y + vec4(0.0, i1.y, i2.y, 1.0 )) 
-                       + i.x + vec4(0.0, i1.x, i2.x, 1.0 ));
-              float n_ = 1.0/7.0;
-              vec3  ns = n_ * D.wyz - D.xzx;
-              vec4 j = p - 49.0 * floor(p * ns.z *ns.z);
-              vec4 x_ = floor(j * ns.z);
-              vec4 y_ = floor(j - 7.0 * x_ );
-              vec4 x = x_ *ns.x + ns.yyyy;
-              vec4 y = y_ *ns.x + ns.yyyy;
-              vec4 h = 1.0 - abs(x) - abs(y);
-              vec4 b0 = vec4( x.xy, y.xy );
-              vec4 b1 = vec4( x.zw, y.zw );
-              vec4 s0 = floor(b0)*2.0 + 1.0;
-              vec4 s1 = floor(b1)*2.0 + 1.0;
-              vec4 sh = -step(h, vec4(0.0));
-              vec4 a0 = b0.xzyw + s0.xzyw*sh.xxyy ;
-              vec4 a1 = b1.xzyw + s1.xzyw*sh.zzww ;
-              vec3 p0 = vec3(a0.xy,h.x);
-              vec3 p1 = vec3(a0.zw,h.y);
-              vec3 p2 = vec3(a1.xy,h.z);
-              vec3 p3 = vec3(a1.zw,h.w);
-              vec4 norm = taylorInvSqrt(vec4(dot(p0,p0), dot(p1,p1), dot(p2, p2), dot(p3,p3)));
-              p0 *= norm.x;  p1 *= norm.y;  p2 *= norm.z;  p3 *= norm.w;
-              vec4 m = max(0.6 - vec4(dot(x0,x0), dot(x1,x1), dot(x2,x2), dot(x3,x3)), 0.0);
-              m = m * m;
-              return 42.0 * dot( m*m, vec4( dot(p0,x0), dot(p1,x1), dot(p2,x2), dot(p3,x3) ) );
-            }
-
-            float fbm(vec3 p) {
-                float sum = 0.0;
-                float amp = 1.0;
-                float freq = 1.0;
-                for(int i = 0; i < 3; i++) {
-                    sum += snoise(p * freq) * amp;
-                    amp *= 0.5;
-                    freq *= 2.0;
-                }
-                return sum;
-            }
-
-            vec4 raymarch(vec3 ro, vec3 rd) {
-                float density = 0.0;
-                vec3 col = vec3(0.0);
-                
-                float t = 0.0;
-                for(int i = 0; i < 15; i++) {
-                    vec3 p = ro + rd * t;
-                    vec3 dp = p;
-                    dp.z -= uTime * 0.2; // Slow whispy motion
-                    
-                    float n = fbm(dp * 0.4);
-                    float d = smoothstep(0.0, 1.0, -abs(p.z) + 1.2 + n * 2.5);
-                    d = max(0.0, d);
-                    
-                    if(d > 0.01) {
-                        float alpha = (1.0 - density) * d * 0.15;
-                        density += alpha;
-                        
-                        vec3 lavender = vec3(0.902, 0.902, 0.980);
-                        vec3 peach    = vec3(1.0, 0.753, 0.796);
-                        vec3 localCol = mix(lavender, peach, smoothstep(-0.5, 0.5, n));
-                        
-                        col += localCol * alpha * 0.5; // Slightly dimmer in background
-                    }
-                    
-                    t += 0.2 + d * 0.1; 
-                    if(density > 0.99 || t > 12.0) break;
-                }
-                return vec4(col, density);
-            }
-
-            void main() {
-                vec2 uv = (vUv - 0.5) * 2.0;
-                uv.x *= uResolution.x / uResolution.y;
-                
-                vec3 ro = vec3(0.0, 0.0, 4.0);
-                vec3 rd = normalize(vec3(uv, -1.0));
-                
-                vec4 bgCol = vec4(0.188, 0.098, 0.204, 1.0); // Midnight purple base
-                vec4 res = raymarch(ro, rd);
-                
-                vec3 finalCol = mix(bgCol.rgb, res.rgb, res.a);
-                gl_FragColor = vec4(finalCol, 1.0);
-            }
-        `,
-      depthWrite: false,
-      depthTest: false,
-      transparent: true
-    });
-
-    const bgMesh = new THREE.Mesh(bgGeometry, bgMaterial);
-    bgMesh.frustumCulled = false;
-    bgMesh.renderOrder = -100; // Force to render absolutely first
-    scene.add(bgMesh);
-
-    //=========================================
-    // 5. Light setup
-    //=========================================
-    // Soft ethereal lighting setup
-    const ambientLight = new THREE.AmbientLight(0xffe5ec, 0.6); // slight pink ambient
+    // 2. Lights
+    const ambientLight = new THREE.AmbientLight(0xffe5ec, 0.6);
     scene.add(ambientLight);
-
-    const dirLight = new THREE.DirectionalLight(0xa594f9, 1.5); // Lavender directional
+    const dirLight = new THREE.DirectionalLight(0xa594f9, 1.5);
     dirLight.position.set(10, 20, 10);
     scene.add(dirLight);
 
-    const oceanLight = new THREE.PointLight(0xffd1a9, 4.0, 100); // Peach point light
-    oceanLight.position.set(0, -10, -50);
-    scene.add(oceanLight);
-
-    const imageLight = new THREE.SpotLight(0xf7a1c4, 8.0, 50, Math.PI / 4, 0.5, 1); // Soft pink spot
-    imageLight.position.set(0, 5, 0);
-    imageLight.target.position.set(0, -10, -20);
-    scene.add(imageLight);
-    scene.add(imageLight.target);
-
-    //=========================================
-    // 6. Procedural 3D Assets: The 6-Scene Journey
-    //=========================================
-
+    // 3. Asset Loading
+    const gltfLoader = new GLTFLoader();
     const allScenesGroup = new THREE.Group();
     scene.add(allScenesGroup);
 
-    // Common Materials
-    const stoneMat = new THREE.MeshStandardMaterial({ color: 0xd0c8b0, roughness: 0.9, metalness: 0.1, flatShading: true });
-    const darkRockMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.9, metalness: 0.2, flatShading: true });
-    const fishMat = new THREE.MeshStandardMaterial({ color: 0xffb000, roughness: 0.3, metalness: 0.2, emissive: 0xff6600, emissiveIntensity: 0.2 });
-    const coralMat = new THREE.MeshStandardMaterial({ color: 0xff88aa, roughness: 0.6, metalness: 0.1 });
-    const glassMat = new THREE.MeshPhysicalMaterial({ color: 0xffffff, transmission: 1.0, opacity: 1.0, roughness: 0.1, ior: 1.5, thickness: 0.5 });
-    const darkStoneMat = new THREE.MeshStandardMaterial({ color: 0x1a1a24, roughness: 0.9, metalness: 0.3 });
-    const pyramidMat = new THREE.MeshStandardMaterial({ color: 0xffd700, roughness: 0.2, metalness: 0.8, emissive: 0x886600, emissiveIntensity: 0.5, wireframe: isMobile });
-
-    // Scene 1: The Galactic Peak (Floating Pedestal)
+    // Scene 1: Load YOUR Mountain
     const scene1Group = new THREE.Group();
-    const pedestalGeo = new THREE.CylinderGeometry(15, 10, 5, 8);
-
-    // Displace pedestal vertices slightly for craggy rock look
-    const pos = pedestalGeo.attributes.position;
-    for (let i = 0; i < pos.count; i++) {
-      let v = new THREE.Vector3(pos.getX(i), pos.getY(i), pos.getZ(i));
-      if (v.y > 0) v.x += (Math.random() - 0.5) * 2;
-      pos.setXYZ(i, v.x, v.y, v.z);
-    }
-    pedestalGeo.computeVertexNormals();
-
-    const pedestal = new THREE.Mesh(pedestalGeo, stoneMat);
-    pedestal.position.set(0, -2, 0);
-    scene1Group.add(pedestal);
-
-    // Floating stair slabs
-    const stairGeo = new THREE.BoxGeometry(8, 0.4, 3);
-    for (let i = 0; i < 8; i++) {
-      const step = new THREE.Mesh(stairGeo, stoneMat);
-      step.position.set(Math.sin(i) * 5, -2 + i * -1.5, Math.cos(i) * 5);
-      step.rotation.y = -i * 0.2;
-      scene1Group.add(step);
-    }
+    gltfLoader.load('mountain.glb', (gltf) => {
+      const mountain = gltf.scene;
+      mountain.scale.set(15, 15, 15);
+      mountain.position.set(0, -10, 0);
+      mountain.traverse(n => {
+        if(n.isMesh) n.material = new THREE.MeshStandardMaterial({ color: 0x1a1a24, flatShading: true });
+      });
+      scene1Group.add(mountain);
+      hideLoading(); // Hide only after mountain is ready
+    }, undefined, (err) => {
+        console.error("Mountain not found, using fallback.");
+        hideLoading(); 
+    });
     allScenesGroup.add(scene1Group);
 
-    // Scene 2: The Spiral Descent & Floating Isles
-    const scene2Group = new THREE.Group();
-    scene2Group.position.set(0, -35, 0);
-
-    const floatingRockGeo = new THREE.IcosahedronGeometry(4, 1);
-    const rpos = floatingRockGeo.attributes.position;
-    for (let i = 0; i < rpos.count; i++) {
-      rpos.setXYZ(i, rpos.getX(i) * (1 + Math.random() * 0.2), rpos.getY(i) * (1 + Math.random() * 0.2), rpos.getZ(i) * (1 + Math.random() * 0.2));
-    }
-    floatingRockGeo.computeVertexNormals();
-
-    const phase2Shapes = [];
-    for (let i = 0; i < 7; i++) {
-      const rock = new THREE.Mesh(floatingRockGeo, darkRockMat);
-      rock.position.set((Math.random() - 0.5) * 40, (Math.random() - 0.5) * 20, (Math.random() - 0.5) * 20);
-      scene2Group.add(rock);
-      phase2Shapes.push(rock);
-    }
-
-    // Greek Pillar
-    const pillarGeo = new THREE.CylinderGeometry(1.5, 1.5, 30, 16);
-    const pillar = new THREE.Mesh(pillarGeo, stoneMat);
-    pillar.position.set(-15, 0, -10);
-    pillar.rotation.x = Math.PI / 8;
-    scene2Group.add(pillar);
-
-    const pillar2 = new THREE.Mesh(pillarGeo, stoneMat);
-    pillar2.position.set(20, -10, -15);
-    pillar2.rotation.z = -Math.PI / 6;
-    scene2Group.add(pillar2);
-
-    // Procedural Fish Array
-    const fishies = [];
-    const fishGeo = new THREE.ConeGeometry(0.5, 2, 4);
-    fishGeo.rotateX(Math.PI / 2);
-    for (let i = 0; i < 15; i++) {
-      const fish = new THREE.Mesh(fishGeo, fishMat);
-      fish.position.set((Math.random() - 0.5) * 50, (Math.random() - 0.5) * 30, (Math.random() - 0.5) * 30);
-      scene2Group.add(fish);
-      fishies.push({ mesh: fish, offset: Math.random() * Math.PI * 2, speed: 0.02 + Math.random() * 0.02 });
-    }
-    allScenesGroup.add(scene2Group);
-
-    // Scene 3: The Sacred Shell & Sea Moss
-    const scene3Group = new THREE.Group();
-    scene3Group.position.set(0, -90, -20);
-
-    const shellGeo = new THREE.SphereGeometry(6, 16, 16, 0, Math.PI, 0, Math.PI / 2);
-    const shellBottom = new THREE.Mesh(shellGeo, stoneMat);
-    shellBottom.rotation.x = -Math.PI / 2;
-    const shellTop = new THREE.Mesh(shellGeo, stoneMat);
-    shellTop.rotation.x = -Math.PI / 4;
-    shellTop.position.set(0, 1, -5);
-
-    const pearlGeo = new THREE.SphereGeometry(2, 32, 32);
-    const pearl = new THREE.Mesh(pearlGeo, new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xffffff, emissiveIntensity: 0.8, roughness: 0 }));
-    pearl.position.set(0, 2, 0);
-
-    // Sea moss / coral
-    const coralGeo = new THREE.TorusKnotGeometry(4, 1.5, 64, 16);
-    const coral1 = new THREE.Mesh(coralGeo, coralMat);
-    coral1.position.set(-15, 0, 0);
-    const coral2 = new THREE.Mesh(coralGeo, coralMat);
-    coral2.position.set(15, 2, -10);
-
-    scene3Group.add(shellBottom, shellTop, pearl, coral1, coral2);
-    allScenesGroup.add(scene3Group);
-
-    // Scene 4: The Marine Garden
-    const scene4Group = new THREE.Group();
-    scene4Group.position.set(0, -150, -40);
-
-    const weedGeo = new THREE.CylinderGeometry(0.2, 0.2, 20, 5);
-    const weedMat = new THREE.MeshStandardMaterial({ color: 0x228855, roughness: 0.8 });
-    const weeds = [];
-    for (let i = 0; i < 40; i++) {
-      const weed = new THREE.Mesh(weedGeo, weedMat);
-      weed.position.set((Math.random() - 0.5) * 80, -5, (Math.random() - 0.5) * 40);
-      scene4Group.add(weed);
-      weeds.push({ mesh: weed, phase: Math.random() * Math.PI * 2 });
-    }
-    allScenesGroup.add(scene4Group);
-
-    // Scene 5: Deep Underwater Reef
-    const scene5Group = new THREE.Group();
-    scene5Group.position.set(0, -230, -60);
-
-    const obeliskGeo = new THREE.BoxGeometry(4, 60, 4);
-    const obelisk1 = new THREE.Mesh(obeliskGeo, darkStoneMat);
-    obelisk1.position.set(-25, 0, -10);
-    const obelisk2 = new THREE.Mesh(obeliskGeo, darkStoneMat);
-    obelisk2.position.set(30, -5, -20);
-
-    const massiveCoralGeo = new THREE.DodecahedronGeometry(12, 1);
-    const massiveCoral = new THREE.Mesh(massiveCoralGeo, coralMat);
-    massiveCoral.position.set(0, -10, -5);
-
-    scene5Group.add(obelisk1, obelisk2, massiveCoral);
-
-    // Glass Bubbles
-    const bubblesArr = [];
-    const bubbleGeo = new THREE.SphereGeometry(2, 16, 16);
-    for (let i = 0; i < 20; i++) {
-      const b = new THREE.Mesh(bubbleGeo, glassMat);
-      b.position.set((Math.random() - 0.5) * 50, (Math.random() - 0.5) * 40, (Math.random() - 0.5) * 40);
-      scene5Group.add(b);
-      bubblesArr.push(b);
-    }
-    allScenesGroup.add(scene5Group);
-
-    // Scene 6: The Golden Pyramid
-    const scene6Group = new THREE.Group();
-    scene6Group.position.set(0, -320, -80);
-
-    const pyramidMeshGeo = new THREE.ConeGeometry(30, 40, 4);
-    const mainPyramid = new THREE.Mesh(pyramidMeshGeo, pyramidMat);
-    scene6Group.add(mainPyramid);
-
-    const floorGeo = new THREE.PlaneGeometry(300, 300);
-    const floorMat = new THREE.MeshStandardMaterial({ color: 0x0a0a10, roughness: 1.0 });
-    const floor = new THREE.Mesh(floorGeo, floorMat);
-    floor.rotation.x = -Math.PI / 2;
-    floor.position.y = -20;
-    scene6Group.add(floor);
-
-    allScenesGroup.add(scene6Group);
-
-    // Compression check bypass
-    function hideLoading() {
-      const loaderUi = document.getElementById('loading');
-      if (loaderUi) {
-        loaderUi.style.opacity = 0;
-        setTimeout(() => loaderUi.remove(), 1000);
-      }
-    }
-    setTimeout(hideLoading, 500);
-
-    function hideLoading() {
-      const loaderUi = document.getElementById('loading');
-      if (loaderUi) {
-        loaderUi.style.opacity = 0;
-        setTimeout(() => loaderUi.remove(), 1000);
-      }
-    }
-    setTimeout(hideLoading, 500);
-
-    //=========================================
-    // 8. GPGPU / FBO Physics for Ocean Ripples
-    //=========================================
-    const fboSize = 128;
-    const gpuCompute = new GPUComputationRenderer(fboSize, fboSize, renderer);
-    if (isMobile) gpuCompute.setDataType(THREE.HalfFloatType);
-
-    const heightmap0 = gpuCompute.createTexture();
-    fillTexture(heightmap0);
-
-    const heightmapShader = `
-        uniform vec2 mousePos;
-        uniform float mouseSize;
-        uniform float viscViscosity;
-
-        void main() {
-            vec2 uv = gl_FragCoord.xy / resolution.xy;
-            
-            vec2 texelSize = 1.0 / resolution.xy;
-            
-            float x0 = texture2D(heightmap, uv - vec2(texelSize.x, 0.0)).r;
-            float x1 = texture2D(heightmap, uv + vec2(texelSize.x, 0.0)).r;
-            float y0 = texture2D(heightmap, uv - vec2(0.0, texelSize.y)).r;
-            float y1 = texture2D(heightmap, uv + vec2(0.0, texelSize.y)).r;
-            
-            vec4 currentState = texture2D(heightmap, uv);
-            float currentHeight = currentState.r;
-            float previousHeight = currentState.g; 
-            
-            float newHeight = ((x0 + x1 + y0 + y1) * 0.5) - previousHeight;
-            newHeight *= 0.99; 
-            
-            float dist = distance(uv, mousePos);
-            if(dist < mouseSize) {
-                newHeight += (mouseSize - dist) * 0.1; 
-            }
-            
-            gl_FragColor = vec4(newHeight, currentHeight, 0.0, 1.0);
-        }
-    `;
-
-    const heightmapVariable = gpuCompute.addVariable("heightmap", heightmapShader, heightmap0);
-    gpuCompute.setVariableDependencies(heightmapVariable, [heightmapVariable]);
-
-    heightmapVariable.material.uniforms.mousePos = { value: new THREE.Vector2(-1, -1) };
-    heightmapVariable.material.uniforms.mouseSize = { value: 0.03 };
-
-    const error = gpuCompute.init();
-    if (error !== null) console.error(error);
-
-    function fillTexture(texture) {
-      const pixels = texture.image.data;
-      for (let i = 0; i < pixels.length; i += 4) {
-        pixels[i] = 0; pixels[i + 1] = 0; pixels[i + 2] = 0; pixels[i + 3] = 1;
-      }
-    }
-
-    const raycaster = new THREE.Raycaster();
-    const mouseContext = new THREE.Vector2(-1, -1);
-
-    const oceanGeo = new THREE.PlaneGeometry(150, 150, oceanSegmentCount, oceanSegmentCount);
-    oceanGeo.rotateX(-Math.PI / 2);
-
-    const oceanUniforms = {
-      uHeightmap: { value: null },
-      uColorDeep: { value: new THREE.Color('#301934') }, // Midnight purple
-      uColorShallow: { value: new THREE.Color('#ff00ff') }, // Magenta
-      uTime: { value: 0 }
-    };
-
-    const oceanMat = new THREE.ShaderMaterial({
-      uniforms: oceanUniforms,
-      vertexShader: `
-            uniform sampler2D uHeightmap;
-            uniform float uTime;
-            varying float vElevation;
-
-            void main() {
-                vec2 simUv = uv; 
-                vec4 heightData = texture2D(uHeightmap, simUv);
-                
-                float elevation = heightData.r * 15.0; 
-                
-                elevation += sin(position.x * 0.2 + uTime * 1.5) * sin(position.z * 0.2 + uTime * 1.5) * 0.5;
-                elevation += sin(position.x * 0.5 - uTime * 1.0) * sin(position.z * 0.5 - uTime * 1.0) * 0.2;
-
-                vec3 newPosition = position;
-                newPosition.y += elevation;
-                vElevation = elevation;
-
-                gl_Position = projectionMatrix * modelViewMatrix * vec4(newPosition, 1.0);
-            }
-        `,
-      fragmentShader: `
-            uniform vec3 uColorDeep;
-            uniform vec3 uColorShallow;
-            varying float vElevation;
-
-            void main() {
-                float mixStrength = (vElevation + 1.0) * 0.3; 
-                mixStrength = clamp(mixStrength, 0.0, 1.0);
-                
-                vec3 color = mix(uColorDeep, uColorShallow, mixStrength);
-                gl_FragColor = vec4(color, 1.0);
-            }
-        `,
+    // 4. Smooth Scrolling (Lenis)
+    const lenis = new Lenis();
+    lenis.on('scroll', ScrollTrigger.update);
+    gsap.ticker.add((time) => {
+      lenis.raf(time * 1000);
     });
 
-    const ocean = new THREE.Mesh(oceanGeo, oceanMat);
-    ocean.position.set(0, -10, -60);
-    scene.add(ocean);
-
-    const interactionPlane = new THREE.Mesh(
-      new THREE.PlaneGeometry(150, 150),
-      new THREE.MeshBasicMaterial({ visible: false })
-    );
-    interactionPlane.rotation.x = -Math.PI / 2;
-    interactionPlane.position.copy(ocean.position);
-    scene.add(interactionPlane);
-
-    if (!isMobile) {
-      window.addEventListener('mousemove', (e) => {
-        mouseContext.x = (e.clientX / window.innerWidth) * 2 - 1;
-        mouseContext.y = -(e.clientY / window.innerHeight) * 2 + 1;
-      });
-    }
-
-    //=========================================
-    // 9. Post-Processing Context
-    //=========================================
-    // God Rays / Underwater Light Post-Processing Pass (Simplified additive blend)
-    const godRayUniforms = {
-      tDiffuse: { value: null },
-      uTime: { value: 0 },
-      uColor: { value: new THREE.Color(0x7000ff) },
-      uIntensity: { value: 0.0 }
-    };
-
-    const godRayPass = new ShaderPass({
-      uniforms: godRayUniforms,
-      vertexShader: `
-            varying vec2 vUv;
-            void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }
-        `,
-      fragmentShader: `
-            uniform sampler2D tDiffuse;
-            uniform float uTime;
-            uniform vec3 uColor;
-            uniform float uIntensity;
-            varying vec2 vUv;
-            
-            void main() {
-                vec4 texel = texture2D(tDiffuse, vUv);
-                
-                // Procedural vertical light rays
-                float ray = sin(vUv.x * 20.0 + uTime) * sin(vUv.x * 10.0 - uTime * 0.5) * 0.5 + 0.5;
-                float fade = smoothstep(0.0, 1.0, vUv.y); // Fade out at bottom
-                
-                // Subtle film grain
-                float grain = (fract(sin(dot(vUv + uTime, vec2(12.9898, 78.233))) * 43758.5453) - 0.5) * 0.05;
-                
-                vec3 finalColor = texel.rgb + uColor * ray * fade * uIntensity + grain;
-                gl_FragColor = vec4(finalColor, texel.a);
-            }
-        `
-    });
-
-    // Custom Composer 
-    const composer = new EffectComposer(renderer);
-    composer.addPass(new RenderPass(scene, camera));
-    composer.addPass(godRayPass); // Add the God Rays pass
-
-    // Particles (Sea Snow / Dust)
-    const particleGeo = new THREE.BufferGeometry();
-    const particleCount = 1500;
-    const posArr = new Float32Array(particleCount * 3);
-    for (let i = 0; i < particleCount * 3; i += 3) {
-      posArr[i] = (Math.random() - 0.5) * 100;
-      posArr[i + 1] = (Math.random() - 0.5) * 350; // Deep vertical distribution
-      posArr[i + 2] = (Math.random() - 0.5) * 100 - 20;
-    }
-    particleGeo.setAttribute('position', new THREE.BufferAttribute(posArr, 3));
-    const particleMat = new THREE.PointsMaterial({
-      size: 0.15,
-      color: 0xffffff,
-      transparent: true,
-      opacity: 0.6,
-      blending: THREE.AdditiveBlending,
-      depthWrite: false
-    });
-    const particles = new THREE.Points(particleGeo, particleMat);
-    scene.add(particles);
-
-
-    //=========================================
-    // 10. GSAP ScrollTrigger Master Journey 
-    //=========================================
+    // 5. Scroll Animations
     const tl = gsap.timeline({
       scrollTrigger: {
         trigger: "#scroll-container",
-        start: "top top",
-        end: "bottom bottom",
-        scrub: 1.5
+        start: "top top", end: "bottom bottom", scrub: 1.5
       }
     });
 
-    // Color Targets for Phase 3 Transition
-    const colorTarget = { fogColor: new THREE.Color(0x000000), bgColor: new THREE.Color(0x000000) };
+    tl.to(camera.position, { x: 20, y: 15, z: 20 }, 0);
+    tl.to(camera.position, { y: -50 }, 0.5);
 
-    // Initial State
-    camera.position.set(0, 20, 40);
-    camera.rotation.set(-Math.PI / 8, 0, 0);
-
-    // --- PHASE 1: The Peak (0% - 30%) ---
-    // Orbit the rock structure slowly
-    tl.to(camera.position, { x: 20, y: 15, z: 20, ease: "power1.inOut" }, 0.0);
-    tl.to(camera.rotation, { y: Math.PI / 4, ease: "power1.inOut" }, 0.0);
-
-    // Plunge down through the rock
-    tl.to(camera.position, { x: 0, y: -5, z: -10, ease: "power2.in" }, 0.15);
-    tl.to(camera.rotation, { x: 0, y: 0, ease: "power2.in" }, 0.15);
-
-    // --- PHASE 2: The Surreal Surface (30% - 60%) ---
-    // Emerge above the FBO water
-    tl.to(camera.position, { x: 0, y: -5, z: -40, ease: "none" }, 0.3);
-
-    // --- PHASE 3: The Deep Trench (60% - 100%) ---
-    // Break through water surface and go underwater
-    tl.to(camera.position, { x: 0, y: -180, z: -80, ease: "power2.inOut" }, 0.6);
-    tl.to(camera.rotation, { x: Math.PI / 6, ease: "power1.inOut" }, 0.6);
-
-    // Animate Colors (Fog and BG) to deep purple
-    tl.to(colorTarget.fogColor, {
-      r: 0.1, g: 0.0, b: 0.3,
-      onUpdate: () => scene.fog.color.copy(colorTarget.fogColor), ease: "power1.inOut"
-    }, 0.6);
-    tl.to(colorTarget.bgColor, {
-      r: 0.05, g: 0.0, b: 0.15,
-      onUpdate: () => bgUniforms.uTime.value += 0, // Just a placeholder onUpdate trigger
-      ease: "power1.inOut"
-    }, 0.6);
-
-    // Fade in God Rays
-    tl.to(godRayUniforms.uIntensity, { value: 1.0, ease: "power1.inOut" }, 0.6);
-
-    // Staggered Character Animation Timings - UI Updates
-    gsap.to(textBlocksChunks[0], {
-      y: '0%', duration: 1, stagger: 0.02, ease: 'power3.out',
-      scrollTrigger: {
-        trigger: "#scroll-container", start: "1% top", end: "10% top", scrub: 1
-      }
-    });
-    tl.to(document.getElementById('text-1'), { opacity: 0, duration: 0.1 }, 0.2);
-
-    document.getElementById('text-2').style.opacity = 1;
-    gsap.fromTo(textBlocksChunks[1], { y: '110%' }, {
-      y: '0%', duration: 1, stagger: 0.02, ease: 'power3.out',
-      scrollTrigger: {
-        trigger: "#scroll-container", start: "30% top", end: "40% top", scrub: 1
-      }
-    });
-    tl.to(document.getElementById('text-2'), { opacity: 0, duration: 0.1 }, 0.6);
-
-    document.getElementById('text-3').style.opacity = 1;
-    gsap.fromTo(textBlocksChunks[2], { y: '110%' }, {
-      y: '0%', duration: 1, stagger: 0.02, ease: 'power3.out',
-      scrollTrigger: {
-        trigger: "#scroll-container", start: "70% top", end: "85% top", scrub: 1
-      }
+    // Text Stagger Animations
+    textBlocksChunks.forEach((chars, i) => {
+      gsap.to(chars, {
+        y: '0%', stagger: 0.02, ease: 'power3.out',
+        scrollTrigger: {
+          trigger: "#scroll-container",
+          start: `${(i * 30)}% top`, end: `${(i * 30) + 10}% top`, scrub: 1
+        }
+      });
     });
 
-    //=========================================
-    // 11. Render Loop
-    //=========================================
+    // 6. Fix for the Loading Screen
+    function hideLoading() {
+      const loaderUi = document.getElementById('loading');
+      if (loaderUi) {
+        loaderUi.style.opacity = 0;
+        setTimeout(() => loaderUi.remove(), 1000);
+      }
+    }
+
+    // Render Loop
+    function animate() {
+      requestAnimationFrame(animate);
+      renderer.render(scene, camera);
+    }
+    animate();
+
+    // Window Resize
     window.addEventListener('resize', () => {
       camera.aspect = window.innerWidth / window.innerHeight;
       camera.updateProjectionMatrix();
       renderer.setSize(window.innerWidth, window.innerHeight);
-      if (useBloom) composer.setSize(window.innerWidth, window.innerHeight);
     });
-
-    const clock = new THREE.Clock();
-    let prevScrollY = window.scrollY;
-    let currentVelocity = 0;
-
-    function animate() {
-      requestAnimationFrame(animate);
-      const elapsedTime = clock.getElapsedTime();
-
-      // Bg Volumetric Clouds Context
-      bgUniforms.uTime.value = elapsedTime;
-
-      // Scroll Velocity Calculation for WebGL Planes
-      const currentScrollY = window.scrollY;
-      const targetVelocity = (currentScrollY - prevScrollY) * 0.1;
-      prevScrollY = currentScrollY;
-      currentVelocity = THREE.MathUtils.lerp(currentVelocity, targetVelocity, 0.1);
-      const cappedVelocity = Math.max(-1.5, Math.min(1.5, currentVelocity));
-
-      // Phase 2 Shapes Animation (Bobbing)
-      if (typeof phase2Shapes !== 'undefined') {
-        phase2Shapes.forEach((shape, i) => {
-          shape.position.y += Math.sin(elapsedTime * 2.0 + i) * 0.02;
-          shape.rotation.x += 0.005;
-          shape.rotation.y += 0.005;
-        });
-      }
-
-      // Particles Animation
-      const pPositions = particles.geometry.attributes.position.array;
-      for (let i = 1; i < particleCount * 3; i += 3) {
-        pPositions[i] += 0.02; // Float up slowly
-        if (pPositions[i] > 50) pPositions[i] = -300; // Reset at bottom
-      }
-      particles.geometry.attributes.position.needsUpdate = true;
-
-      oceanUniforms.uTime.value = elapsedTime;
-
-      // Bubbles Animation
-      if (typeof bubblesArr !== 'undefined') {
-        bubblesArr.forEach((b, i) => {
-          b.position.y += Math.sin(elapsedTime * 2.0 + i) * 0.01 + 0.02;
-          if (b.position.y > 20) b.position.y = -60;
-        });
-      }
-
-      // Update God Rays time
-      if (composer) {
-        godRayUniforms.uTime.value = elapsedTime;
-      }
-
-      // Background Color Transition handling
-      const currentBg = new THREE.Color(0, 0, 0);
-      currentBg.lerp(colorTarget.bgColor, 1.0);
-      bgMaterial.uniforms.uTime.value = elapsedTime;
-
-      // 5. Render Scene
-      composer.render();
-    }
-
-    animate();
   </script>
-
 </body>
-
 </html>
